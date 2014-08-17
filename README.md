@@ -213,11 +213,9 @@ Features slated for V2
 
 Contributors
 ============
-**haddocset**
+Hirotomo Moriwaki <philopon.dependence@gmail.com>
 
-The major instigator of this project was
-[haddocset](https://github.com/philopon/haddocset), with much of the
-early implementation of *dash-haskell* influenced by that code-base.
+The major instigator of this project was Hirotomo Moriwaki's [haddocset](https://github.com/philopon/haddocset), with much of the early implementation of *dash-haskell* influenced by that code-base.
 
 Author & Maintainer
 ===================
