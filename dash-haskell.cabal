@@ -1,0 +1,71 @@
+name:                dash-haskell
+version:             1.0.0.0
+synopsis:            Command line tool to generate Dash docsets from ghc Haskell packages
+homepage:            http://www.github.com/jfeltz/dash-haskell
+Bug-reports:         https://github.com/jfeltz/dash-haskell/issues
+license:             LGPL-3
+license-file:        LICENSE
+author:              John P. Feltz
+maintainer:          jfeltz@gmail.com
+copyright:           (c) 2014 John P. Feltz 
+category:            Development
+build-type:          Simple
+cabal-version:       >= 1.18
+extra-source-files:  README.md 
+
+description: 
+  Dash is a framework and file format for allowing easy lookup and indexing of
+  programming docs, e.g. API functions and modules. A number of plugins offer dash docset
+  lookup in editors such as Emacs and Vim.  By using this tool, one can
+  convert haskell package haddock(s) to docsets. 
+  .
+  The major benefit of dash-haskell, is that once these docsets are built, dash
+  tools provide one of the few, if only, close approximations to
+  offline, contextual, in IDE documentation for Haskell. 
+  .
+  Summary:
+  .
+  > $ dash-haskell --help 
+  > Usage: dash-haskell [-p|--dbprovider <provider,args>] [-o|--output <dir>]
+  >                     [-q|--quiet] [-c|--cabal <file.cabal>]
+  >                     [-r|--cabal-constraints executable=name, ..] [packages]
+  >   additional help is also available on arguments with "dash-haskell help arg"
+
+  > Available options:
+  >   -h,--help                Show this help text
+  >   -p,--dbprovider <provider,args>
+  >                            a ghc package db provider: cabal|ghc|dir
+  >   -o,--output <dir>        the directory to write created docsets to
+  >   -q,--quiet               set to verbose output
+  >   -c,--cabal <file.cabal>  the cabal file to source package dependencies from 
+  >   -r,--cabal-constraints executable=name, ..
+  >                            limit package results from a cabal file source, see
+  >                            documentation
+  >   packages                 a list of packages to specifically build, e.g.
+  >                            either-1.0.1 text-1.2.0
+
+executable dash-haskell
+  main-is:             Main.hs
+  build-depends:       Cabal                >= 1.18
+                     , base                 >= 4.7 && <4.8
+                     , bytestring           >= 0.10.0.1
+                     , containers           >= 0.5.5.1
+                     , direct-sqlite >= 2.3.13
+                     , directory            >= 1.2.1.0
+                     , either               >= 4.3
+                     , ghc                  >= 7.8.3
+                     , mtl                  >= 2.1.3.1
+                     , optparse-applicative >= 0.7
+                     , pipes                >= 4.1.0
+                     , process              >= 1.2.0.0
+                     , sqlite-simple        >= 0.4.5.0
+                     , system-fileio        >= 0.3.12 && < 0.3.15
+                     , system-filepath      >= 0.3.1 && < 0.5
+                     , tagsoup              >= 0.12.7
+                     , text                 >= 0.7.1
+                     , transformers         >= 0.3 && < 0.5
+                     , parsec               >= 3.1.5
+                     , haddock              >= 2.14.3
+  ghc-options:         -Wall -rtsopts
+  hs-source-dirs:      src
+  default-language:    Haskell2010
