@@ -3,7 +3,7 @@ prior to submission to Hackage. Feedback to this is wanted.*
 
 dash-haskell
 ============
-A solution to the Haskell IDE documentation problem.
+**A solution to the Haskell IDE doc problem**
                               
   ![look-up](/img/lookup.png?raw=true)
   ![listing](/img/listing.png?raw=true)
