@@ -39,7 +39,6 @@ toPkgMatch parsed = do
       modify (S.delete p)
       return . Just $ (p, Ghc.stringToPackageId parsed)
 
-    
 -- | A crude parser that extracts db -> package set relations based
 -- on whitespace indentation 
 accumPaths :: 

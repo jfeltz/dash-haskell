@@ -24,19 +24,19 @@ cabalTopic =
       "These are constraints on results from a cabal file source",
       "e.g. \"-r executables=foo,excluded=base,ghc\"",
       "possible variables:\n",
-      " executables - the cabal executable targets to limit to",
-      " suites - the cabal suite targets to limit to",
-      " benchmarks - the cabal benchmark targets to limit to",
-      " library - the cabal library target to limit to\n",
-      " excluded - packages to avoid using"
+      " executables : the cabal executable targets to limit to",
+      " suites      : the cabal suite targets to limit to",
+      " benchmarks  : the cabal benchmark targets to limit to",
+      " library     : the cabal library target to limit to\n",
+      " excluded    : packages to avoid using"
    ]
 providerTopic = Topic "package database provider" $
   L.intercalate "\n" [
     "the external program to call to produce package databases, e.g:",
     "variables:", 
-    " cabal: use cabal sandbox package db's",
-    " ghc: use ghc's package db's",
-    " dir: use package db, this still makes a call to ghc-pkg",
+    " cabal : use cabal sandbox package db's",
+    " ghc   : use ghc's package db's",
+    " dir   : use package db, this still makes a call to ghc-pkg",
     " e.g. \"-p dir,/home/jpf/.ghc/x86_64-linux-7.8.3/package.conf.d\"",
     " Note, only one provider at once is supported at this time."
     ]

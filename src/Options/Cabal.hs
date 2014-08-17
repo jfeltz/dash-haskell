@@ -31,7 +31,7 @@ data DependencyDescription =
     benchmarks :: Targets
  } 
 
--- -- Return the packages to use from the target type, or fail with unfound targets
+-- | Return the packages to use from the target type, or fail with unfound targets.
 fromTargetType :: S.Set String -> Targets -> Either [String] (S.Set String) 
 fromTargetType narrowing tgts = do
   used_targets <- -- return a list of used targets 

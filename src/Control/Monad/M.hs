@@ -38,11 +38,6 @@ msg str = do
 err :: String -> M r
 err = lift . left
 
--- -- By examining constructor for M:
--- -- (ReaderT (\r -> EitherT String IO a)
--- fromEither :: Either String r -> M r 
--- fromEither either = ReaderT (\_ -> return . return
-
 runM :: Env -> M () -> IO () 
 runM env' comp = do 
   result <- runEitherT (runReaderT comp env')

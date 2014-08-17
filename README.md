@@ -3,7 +3,7 @@ prior to submission to Hackage. Feedback to this is wanted.*
 
 dash-haskell
 ============
-**A solution to the IDE Haskell doc problem**
+**local and approximate package doc access for your Haskell project dependencies**
                               
   ![look-up](/img/lookup.png?raw=true)
   ![listing](/img/listing.png?raw=true)
@@ -13,7 +13,7 @@ The purpose of the dash-haskell is to facilitate Haskell documentation in IDE(s)
   * **Local**
 
     Documentation is stored in [dash](http://kapeli.com/dash) docsets on the filesystem,
-    avoiding the need to query **often inaccurate** information from a remote resource such as *hackage*,
+    avoiding the need to query **often inaccurate, version lagged** information from a remote resource such as *hackage*,
     *hoogle*, or *hayoo*.
     
   * **Resolved from Project Dependencies**
@@ -185,7 +185,7 @@ them.
 * For **Vim**, see the following known docset plugins:
 
     * The zealdocs [vim plugin](http://www.zealdocs.org)
-    * The Dash.app [vim plugin](https://github.com/rizzatti/dash.vim).
+    * The Dash.app [vim plugin](https://github.com/rizzatti/dash.vim)
 
 Features slated for V2
 ======================

@@ -17,7 +17,6 @@ data IndexRow = IndexRow {
 } deriving (Show)
 
 instance Monoid IndexRow where
---   mempty = IndexRow mempty mempty mempty mempty  
   mempty = IndexRow mempty mempty mempty mempty
   mappend l r =  
     IndexRow 
@@ -35,7 +34,7 @@ instance ToRow IndexRow where
      , SQLText . modAttr $ index
     ]
   
--- Probably chould derive this from a type, but that's overkill right now
+-- I probably chould derive this from a type, but that's overkill right now.
 table :: String
 table = "searchIndex(name, type, path, module)"
 
@@ -44,8 +43,6 @@ createTable conn =
   mapM_ (execute_ conn) 
     ["CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT, module TEXT);",
       Query . T.pack $ "CREATE UNIQUE INDEX anchor ON " ++ table ++ ";"]
-
--- TODO / FIXME, a package attribute may not be necessary
 
 insertRow :: Connection -> IndexRow -> IO ()
 insertRow conn =
@@ -101,7 +98,7 @@ fromArtifact p conn art = do
               url pfx,
               modStr ghcmod)
           where
-            url pfx = -- FIXME very brittle/untested 
+            url pfx =
               modUrl ghcmod ++ ".html#" ++ pfx : ':' : 
                 escapeSpecial (Ghc.getOccString ghcname)
             toPair n
