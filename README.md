@@ -1,4 +1,4 @@
-*Please Note: this is a github pre-release for Haskell community vetting
+*Please Note: this is a github pre-release for Haskell community vetting-
 prior to submission to Hackage. Feedback to this is wanted.*
 
 dash-haskell
@@ -184,7 +184,7 @@ them.
 
 * For **Vim**, see the following known docset plugins:
 
-    * The zealdocs [vim plugin](zealdocs.org)
+    * The zealdocs [vim plugin](http://www.zealdocs.org)
     * The Dash.app [vim plugin](https://github.com/rizzatti/dash.vim).
 
 Features slated for V2
