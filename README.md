@@ -4,15 +4,14 @@ prior to submission to Hackage. Feedback to this is wanted.*
 dash-haskell
 ============
 **local and approximate package doc access for your Haskell project dependencies**
-<center>                             
+
+  **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
  
-  **direct to browser lookup**
-  
+
+  **keyword, module, and package searching:**
   ![listing](/img/listing.png?raw=true)
 
-  **keyword, module, and package searching**
-</center>
 The purpose of the dash-haskell is to facilitate Haskell documentation in IDE(s), with the following qualities:
   
   * **Local**
