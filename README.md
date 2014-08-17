@@ -6,7 +6,12 @@ dash-haskell
 **local and approximate package doc access for your Haskell project dependencies**
                               
   ![look-up](/img/lookup.png?raw=true)
+ 
+  **direct to browser lookup**
+  
   ![listing](/img/listing.png?raw=true)
+
+  **keyword, module, and package searching**
 
 The purpose of the dash-haskell is to facilitate Haskell documentation in IDE(s), with the following qualities:
   
