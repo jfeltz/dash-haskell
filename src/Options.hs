@@ -70,7 +70,7 @@ parser =
     <*>
     many (
      argument parsePkg (metavar "packages" <> 
-     help "a list of packages to specifically build, e.g. either-1.0.1 text-1.2.0"
+     help "a list of packages to specifically build, e.g. either-1.0.1 text"
      ))
 
 prod_Packages :: Options -> ProducerM (S.Set Package) () 

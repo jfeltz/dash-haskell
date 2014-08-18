@@ -21,27 +21,45 @@ cabalTopic, providerTopic, outputTopic, packageTopic :: Topic
 cabalTopic = 
   Topic "cabal constraints" $
     L.intercalate "\n" [
-      "These are constraints on results from a cabal file source",
+      "These are constraints on packages pulled from a cabal file source.",
+      "These constraints allow one to simply select subsets of cabal targets to use",
+      "and subsets of packages to avoid sourcing.\n",
+      "Some options support multivalue bindings, and are of the form:",
+      " -r <var=value>,<var2=value1,value2>",
       "e.g. \"-r executables=foo,excluded=base,ghc\"",
-      "possible variables:\n",
-      " executables : the cabal executable targets to limit to",
-      " suites      : the cabal suite targets to limit to",
-      " benchmarks  : the cabal benchmark targets to limit to",
-      " library     : the cabal library target to limit to\n",
-      " excluded    : packages to avoid using"
+      "\npossible variables:\n",
+      " executables : the executable targets to limit to",
+      " suites      : the suite targets to limit to",
+      " benchmarks  : the benchmark targets to limit to",
+      " library     : limit to library, this takes no arguments\n",
+      " excluded    : unversioned packages to avoid using"
    ]
+
 providerTopic = Topic "package database provider" $
   L.intercalate "\n" [
-    "the external program to call to produce package databases, e.g:",
-    "variables:", 
-    " cabal : use cabal sandbox package db's",
-    " ghc   : use ghc's package db's",
-    " dir   : use package db, this still makes a call to ghc-pkg",
-    " e.g. \"-p dir,/home/jpf/.ghc/x86_64-linux-7.8.3/package.conf.d\"",
-    " Note, only one provider at once is supported at this time."
+    "The external program to call to produce package databases\n"
+    , "options are the form <var,args>" 
+    , "e.g:" 
+    , "    -p ghc,'--user'"
+    , " or -p dir,/home/jpf/.ghc/x86_64-linux-7.8.3/package.conf.d\n"
+    , "Note, only one provider at once is supported at this time.\n"
+    , "pairings for <var,args>:"
+    , " var                                      args "
+    , "----------------------------------------- --------------------------------"
+    , " cabal : use cabal sandbox package db(s)  flag string to pass to cabal"
+    , " ghc   : use ghc's package db(s),         flag string to pass to ghc"
+    , " dir   : use package db dir directory     the package db directory"
+    
     ]
-outputTopic= Topic "output" 
- "The directory root of which to write .docset directories to"
+
+outputTopic= Topic "output" $ 
+ L.intercalate "\n" [
+   "The directory root of which to write .docset directories to\n"
+   , "For each package sourced by dash-haskell, a matching docset"
+   , "will be written to that directory in its full version form, e.g:\n"
+   , "  \"output/package-1.2.3.docset\""
+ ]
+
 packageTopic= Topic "package" $
  L.intercalate "\n" 
   ["a ghc package, e.g. either, or either-4.1.0" ,
@@ -76,16 +94,15 @@ toIndexes = S.toList . S.fromList . map toTopic
 
 toHelp :: Documentation -> [String] -> IO () 
 toHelp d [] = 
-  putStr $ 
-    "available help topic tags:\n" ++ L.intercalate "," (tags d) ++ "\n"
+  putStrLn $ "available help topics:\n" ++ L.intercalate ", " (tags d)
 toHelp d args = 
   -- fold over each index, producing a list of docs to display 
   let topic_set = L.foldl folded S.empty $ toIndexes args in 
   if S.null topic_set then do 
-    putStrLn "sorry, no documentation available for expressions given"
+    putStrLn "Sorry, no documentation available for expressions given.\n"
     toHelp docs [] 
   else do
-    putStrLn "accessing help on topics: \n"
+    putStrLn "accessing help on topics, \n"
     putStr . L.intercalate "\n" . L.map headed $ S.toList topic_set
     putStr "\n"
   where 
