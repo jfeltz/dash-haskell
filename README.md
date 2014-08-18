@@ -136,10 +136,7 @@ A hackage package is forthcoming. For now **dash-haskell** can be installed with
 
 Package Resolution
 ==================
-
-As a general rule, try to **be version specific** when providing package arguments,
-unless you are judicious about which packages are stored in your *cabal sandbox* or *ghc package db*. 
-There is a lot of hidden behavior that goes into how dash-haskell resolves packages, 
+When dependency sourcing from a cabal file, dash-haskell does not (yet) select versioned packages from the build-dependency version bounds, only the package names. As a general rule, try to **be version specific** when providing package arguments, unless you're judicious about which packages are stored in your *cabal sandbox* or *ghc package db*. There is a lot of hidden behavior that goes into how dash-haskell resolves packages, 
 for example, consider the hypothetical package arguments:
 ```
 $ dash-haskell either parsec-1.2 parsec
@@ -154,6 +151,7 @@ This chooses by default:
   By convention the first db that provides the unversioned package is chosen.
 * ```either-4.1.0``` and ```parsec-1.2``` are then selected from the package db,
 where their config files are parsed for the documentation sources to be converted. 
+
 
 IDE Configuration
 =================
