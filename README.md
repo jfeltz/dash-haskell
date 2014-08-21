@@ -46,7 +46,7 @@ Summary
   Usage: dash-haskell [-p|--dbprovider <provider,args>] [-o|--output <dir>]
                       [-q|--quiet] [-c|--cabal <file.cabal>]
                       [-r|--cabal-constraints executable=name, ..] [packages]
-    additional help is also available on arguments with "dash-haskell help arg"
+    additional help is available with "dash-haskell help <topic|option>"
 
   Available options:
     -h,--help                Show this help text
@@ -54,7 +54,7 @@ Summary
                              a ghc package db provider: cabal|ghc|dir
     -o,--output <dir>        the directory to write created docsets to
     -q,--quiet               set to verbose output
-    -c,--cabal <file.cabal>  the cabal file to source package dependencies from 
+    -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from 
     -r,--cabal-constraints executable=name, ..
                              limit package results from a cabal file source, see
                              documentation

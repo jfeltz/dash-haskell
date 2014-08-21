@@ -58,7 +58,7 @@ parser =
      <> short 'c'  
      <> metavar "<file.cabal>" 
      <> value Nothing
-     <> help "the cabal file to source package dependencies from")
+     <> help "the cabal file to retrieve package dependencies from")
     <*>
     nullOption (
       eitherReader toConstraints

@@ -35,5 +35,5 @@ main = do
    parserInfo :: ParserInfo Options
    parserInfo = info (helper <*> parser)  $
      header "dash-haskell v1.0.0.0, a dash docset construction tool for Haskell packages"
-     <> progDesc "more help is also available with \"dash-haskell help <topic|option>\""
+     <> progDesc "additional help is available with \"dash-haskell help <topic|option>\""
      <> footer "http://www.github.com/jfeltz/dash-haskell (C) John P. Feltz 2014"
