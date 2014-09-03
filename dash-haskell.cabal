@@ -55,7 +55,7 @@ executable dash-haskell
                      , either               >= 4.3
                      , ghc                  >= 7.8.3
                      , mtl                  >= 2.1.3.1
-                     , optparse-applicative >= 0.7
+                     , optparse-applicative >= 0.7 && < 0.10.0
                      , pipes                >= 4.1.0
                      , process              >= 1.2.0.0
                      , sqlite-simple        >= 0.4.5.0
@@ -65,7 +65,7 @@ executable dash-haskell
                      , text                 >= 0.7.1
                      , transformers         >= 0.3 && < 0.5
                      , parsec               >= 3.1.5
-                     , haddock              >= 2.14.3
+                     , haddock-api          >= 2.15.0
   ghc-options:         -Wall -rtsopts
   hs-source-dirs:      src
   default-language:    Haskell2010
