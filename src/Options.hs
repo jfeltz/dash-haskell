@@ -50,7 +50,7 @@ parser =
      <> value "./docsets" 
      <> help "the directory to write created docsets to")
     <*>
-    switch (long "quiet" <> short 'q' <> help "set to verbose output")
+    switch (long "quiet" <> short 'q' <> help "set to quiet output")
     <*>
     nullOption (
      eitherReader (Right . Just)

@@ -36,7 +36,7 @@ description:
   >   -p,--dbprovider <provider,args>
   >                            a ghc package db provider: cabal|ghc|dir
   >   -o,--output <dir>        the directory to write created docsets to
-  >   -q,--quiet               set to verbose output
+  >   -q,--quiet               set to quiet output
   >   -c,--cabal <file.cabal>  the cabal file to source package dependencies from 
   >   -r,--cabal-constraints executable=name, ..
   >                            limit package results from a cabal file source, see

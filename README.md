@@ -53,7 +53,7 @@ Summary
     -p,--dbprovider <provider,args>
                              a ghc package db provider: cabal|ghc|dir
     -o,--output <dir>        the directory to write created docsets to
-    -q,--quiet               set to verbose output
+    -q,--quiet               set to quiet output
     -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from 
     -r,--cabal-constraints executable=name, ..
                              limit package results from a cabal file source, see
@@ -168,16 +168,15 @@ them.
   For limiting helm-dash to project specific docsets, the following also helps. 
 
   ```lisp
-  (defun activate-package-docsets (root) 
-    "activate all docsets in a given directory"
-    (progn
-       ; force docsets in root to be recognized as installed docsets
-       (setq helm-dash-docsets-path root) 
-       ; append those to the docset list
-       (setq
-          helm-dash-common-docsets
-          (append (helm-dash-installed-docsets) helm-dash-common-docsets ))
-    ))
+(defun activate-package-docsets (root) 
+  (progn
+     (setq helm-dash-docsets-path root) 
+     (setq helm-dash-common-docsets (helm-dash-installed-docsets))
+      
+     (message 
+      (format "activated %d docsets from: %s" 
+        (length helm-dash-common-docsets) root))
+  ))
   ```
 
   ```lisp
