@@ -18,7 +18,6 @@ import           System.Exit
 import           System.Process
 
 isPackage :: String -> Bool
-isPackage []  = False -- FIXME too brittle, need regex
 isPackage str = str /= "    (no packages)" && "   " `L.isPrefixOf` str 
 
 -- | If parsed matches a member of the set by version first, return,
@@ -65,7 +64,8 @@ accumPaths (l:rest) unassigned assigned =
           else -- it could be a package 
             if isPackage l then
               let 
-                (r, unassigned') = runState (toPkgMatch (drop 4 l)) unassigned
+                (r, unassigned') =
+                  runState (toPkgMatch (unhide $ drop 4 l)) unassigned
               in (,) unassigned' $ 
                    maybe 
                      assigned -- no change 
@@ -74,6 +74,10 @@ accumPaths (l:rest) unassigned assigned =
             else
               (unassigned, assigned)
   where
+    unhide :: String -> String
+    unhide ('(':str) = L.take (L.length str - 1) str 
+    unhide s         = s 
+
     -- | remove last ':' and junk 
     -- Interestingly, when running cabal and ghc proc, it's stdout actually 
     -- appends colons to paths, instead of what appears on console.
