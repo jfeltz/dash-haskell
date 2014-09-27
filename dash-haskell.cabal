@@ -19,9 +19,9 @@ description:
   lookup in editors such as Emacs and Vim.  By using this tool, one can
   convert haskell package haddock(s) to docsets. 
   .
-  The major benefit of dash-haskell, is that once these docsets are built, dash
-  tools provide one of the few, if only, close approximations to
-  offline, contextual, in IDE documentation for Haskell. 
+  The major benefit of dash-haskell, is that once these docsets are built, dash tools
+  provide one of the few, if only solutions for offline, contextual, and project dependency
+  approximate IDE documentation for Haskell. 
   .
   Summary:
   .
@@ -43,6 +43,63 @@ description:
   >                            documentation
   >   packages                 a list of packages to specifically build, e.g.
   >                            either-1.0.1 text-1.2.0
+  .
+  > $ cd foo-1.2.0/ 
+  > $ dash-haskell -c foo.cabal -o docsets 
+  > db provider:
+  >   lookup strategy: cabal sandbox db index
+  >   cmd: cabal
+  >   args: sandbox hc-pkg list
+  >
+  > processing: system-filepath-0.4.12
+  >   writing files..
+  >   writing plist..
+  >   populating database..
+  >   finished populating sqlite database..
+  >
+  > processing: system-fileio-0.3.14
+  >   writing files..
+  >   writing plist..
+  >   populating database..
+  >   finished populating sqlite database..
+  >
+  > processing: pipes-4.1.2
+  >   writing files..
+  >   writing plist..
+  >   populating database..
+  >   finished populating sqlite database..
+  >
+  > warning: failed to process: parsec-3.1.5
+  > warning: path errors in pkg conf file:
+  >  /home/jpf/local/cabal-sandboxes/dash-haskell/x86_64-linux-ghc-7.8.3-packages.conf.d/parsec-3.1.5-abf7e89cafe4e74712f678cea843c1c8.conf
+  > with problem(s):
+  >  missing: haddock interface file
+  >  missing: html doc dir
+  >
+  > processing: sqlite-simple-0.4.8.0
+  >   writing files..
+  >   writing plist..
+  >   populating database..
+  >   finished populating sqlite database..
+  >
+  > $
+  .
+  Notice, the failure of parsec-3.1.5 is illustrated here to show that in this case, dash-haskell depends on haddock documentation being built for the requested package. A possible resolution in this case, if using a sandbox, is:
+  .
+  > $ cabal install --reinstall parsec-3.1.5 --enable-documentation
+  > $ dash-haskell parsec-3.1.5 -o docsets
+  .
+  Versions:
+  .
+  The version numbering scheme for this package is defined as follows, given: 
+  .
+  >dash-haskell-a.b.c.d
+  .
+  a, b index interface or feature changes to the CLI
+  .
+  c, d index bug-fix and documentation updates
+  .
+
 
 executable dash-haskell
   main-is:             Main.hs
