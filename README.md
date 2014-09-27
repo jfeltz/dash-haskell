@@ -1,6 +1,3 @@
-*Please Note: this is a github pre-release for Haskell community vetting-
-prior to submission to Hackage. Feedback to this is wanted.*
-
 dash-haskell
 ============
 **local and approximate package doc access for your Haskell project dependencies**
@@ -127,10 +124,14 @@ $ dash-haskell help [option|topic]
 
 Installation
 ============
-A hackage package is forthcoming. For now **dash-haskell** can be installed with:
+```
+$ cabal install dash-haskell
+```
+or
+
 ```
  $ git clone http://www.github.com/jfeltz/dash-haskell
- $ cd dash-haskell.git 
+ $ cd dash-haskell
  $ cabal install 
 ```
 

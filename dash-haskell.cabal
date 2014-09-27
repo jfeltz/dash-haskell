@@ -1,6 +1,6 @@
 name:                dash-haskell
 version:             1.0.0.0
-synopsis:            Command line tool to generate Dash docsets from ghc Haskell packages
+synopsis:            Command line tool to generate Dash docsets (IDE docs) from package haddock
 homepage:            http://www.github.com/jfeltz/dash-haskell
 Bug-reports:         https://github.com/jfeltz/dash-haskell/issues
 license:             LGPL-3
@@ -8,7 +8,7 @@ license-file:        LICENSE
 author:              John P. Feltz
 maintainer:          jfeltz@gmail.com
 copyright:           (c) 2014 John P. Feltz 
-category:            Development
+category:            Documentation
 build-type:          Simple
 cabal-version:       >= 1.18
 extra-source-files:  README.md 
