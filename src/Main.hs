@@ -25,7 +25,7 @@ main = do
       -- completed state on the FS that can be handled by dependant tools, e.g. Emacs helm-dash.
 
       runM (newEnv (not . quiet $ options)) . runEffect $
-       cons_writeFiles (P.decodeString $ output_dir options) -- writes converted html, haddock, and sql db
+       cons_writeFiles (P.decodeString $ outputDir options) -- writes converted html, haddock, and sql db
        <-< pipe_Conf              -- yields vetted package configurations
        <-< pipe_ConfFp (dbprovider options)  -- yields GHC package config files
        <-< prod_Packages options

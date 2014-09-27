@@ -1,43 +1,38 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE TupleSections #-}
 
 module Options where
 
-import Options.Applicative.Common
-import Options.Applicative.Builder
-import Options.Cabal
-import Options.DbProvider
-import Options.CabalConstraints (toConstraints, none, CabalConstraints)
-import Control.Applicative
-import Data.Char
+import           Control.Applicative
+import           Control.Monad.M
 import qualified Data.List as L
-import Package (unversioned)
-import Control.Monad.M
-import Data.Monoid
-import Pipes
-import qualified Data.Set as S
 
+import           Data.Monoid
+import qualified Distribution.Package as C
+import qualified Distribution.Version as CV
+import           Distribution.Text
+import           Options.Applicative.Builder
+import           Options.Applicative.Common
+import           Options.Cabal
+import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
+import           Options.DbProvider
+import           PackageId
+import           Pipes
+import qualified Data.Set as S
+                 
 data Options = Options { 
   dbprovider :: DbProvider,
-  output_dir  :: FilePath,
+  outputDir  :: FilePath,
   quiet    :: Bool,
   cabal :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
-  packages :: [Package]
+  packages :: [C.PackageId]
 } deriving Show
-
-parsePkg :: String -> Maybe Package
-parsePkg s = 
-  if all (\c -> isAlphaNum c || (c `elem` "-.")) s then 
-    Just s
-  else
-    Nothing 
 
 parser :: Parser Options
 parser = 
   Options <$> 
-    nullOption (
-      eitherReader toProvider
-      <> long "dbprovider" 
+    option toProvider 
+      (long "dbprovider" 
       <> short 'p'
       <> metavar "<provider,args>"
       <> value (CabalSandbox Nothing) 
@@ -52,56 +47,57 @@ parser =
     <*>
     switch (long "quiet" <> short 'q' <> help "set to quiet output")
     <*>
-    nullOption (
-     eitherReader (Right . Just)
-     <> long "cabal"
+    option (return . Just) 
+     (long "cabal"
      <> short 'c'  
      <> metavar "<file.cabal>" 
      <> value Nothing
      <> help "the cabal file to retrieve package dependencies from")
     <*>
-    nullOption (
-      eitherReader toConstraints
-      <> long "cabal-constraints" 
+    option toConstraints
+      (long "cabal-constraints" 
       <> short 'r'
       <> value none 
       <> metavar "executable=name, .."
       <> help "limit package results from a cabal file source, see documentation")
     <*>
     many (
-     argument parsePkg (metavar "packages" <> 
+     argument simpleParse (metavar "packages" <> 
      help "a list of packages to specifically build, e.g. either-1.0.1 text"
      ))
 
-prod_Packages :: Options -> ProducerM (S.Set Package) () 
+-- | Given two lists of package satisfying strings, 
+-- return a list that is non-duplicate, the most versioned of the two.
+-- e.g. if 'either-4.1.0' is in one, and 'either' is the other, 
+-- the versioned is chosen. If both are versioned, both appear in
+-- the final result.
+reduce :: [C.PackageId] -> [C.PackageId]
+reduce = fromAsc . L.sort where
+  -- Here we exploit the fact that you only need to examine the next member of 
+  -- an ascending list to determine a version
+  fromAsc :: [C.PackageId] -> [C.PackageId]
+  fromAsc []      = []
+  fromAsc (p:[])  = [p] 
+  fromAsc (p:nxt:rest)
+    | p == nxt = -- duplicate 
+      fromAsc (nxt:rest) 
+    | unversioned p == unversioned nxt = 
+      if unversioned p == p then
+        fromAsc $ nxt:rest
+      else -- both are versioned by list ordering
+        p : nxt : fromAsc rest 
+    | otherwise = -- they're different packages
+        p : fromAsc ( nxt : rest )
+  
+versionless :: String -> C.PackageId
+versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 
+
+prod_Packages :: Options -> ProducerM (S.Set String) () 
 prod_Packages options = do
-  cabal_packages <-
+  cabal_dependencies <-
     lift $ case cabal options of 
-      Nothing -> return mempty 
-      Just fp -> readPackages fp (cabalConstraints options)
-  yield . reduce (packages options) $ S.toList cabal_packages
-  where 
-    -- | Given two lists of package satisfying strings, 
-    -- return a list that non-duplicate, the most versioned of the two.
-    -- e.g. if 'either-4.1.0' is in one, and 'either' is the other, 
-    -- the versioned is chosen. If both are versioned, both appear in
-    -- the final result.
-    reduce :: [Package] -> [Package] -> S.Set Package
-    reduce l r = 
-      S.fromList . fromAsc $ L.sort $ l ++ r
-     where
-      -- Here we exploit the fact that you only need to examine the next member of 
-      -- an ascending list to determine a version
-      fromAsc :: [String] -> [String]
-      fromAsc []      = [] 
-      fromAsc (p:[])  = [p] 
-      fromAsc (p:nxt:rest)
-        | p == nxt = -- duplicate 
-          fromAsc (nxt:rest) 
-        | unversioned p == unversioned nxt = 
-          if unversioned p == p then
-            fromAsc $ nxt:rest
-          else -- both are versioned by list ordering
-            p : nxt : fromAsc rest 
-        | otherwise = -- they're different packages
-            p : fromAsc ( nxt : rest )
+      Nothing -> return [] 
+      Just fp -> (S.toList . S.map versionless) 
+                 <$> readPackages fp (cabalConstraints options)
+  yield . S.fromList . map (show . disp) $ 
+    reduce (packages options ++ cabal_dependencies)

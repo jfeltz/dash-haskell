@@ -3,9 +3,9 @@ module Options.CabalConstraints where
 import qualified Data.Set as S
 import Data.Monoid
 import Text.ParserCombinators.Parsec
-import Data.Either.Combinators
 import Control.Applicative hiding ((<|>), many, optional)
 import Control.Monad
+import qualified Options.Applicative.Types as O
 
 data CabalConstraints = 
   CabalConstraints {
@@ -84,5 +84,9 @@ constraints (Just ctor) = do
       notFollowedBy (char '=')
       return var
 
-toConstraints :: String -> Either String CabalConstraints
-toConstraints = mapLeft show . parse (constraints Nothing) [] 
+toConstraints :: String -> O.ReadM CabalConstraints
+toConstraints expr = 
+  O.ReadM $ 
+    case parse (constraints Nothing) [] expr of 
+      Left err -> Left . O.ErrorMsg . show $ err
+      Right c -> Right c 

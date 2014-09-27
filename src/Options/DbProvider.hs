@@ -1,5 +1,6 @@
 module Options.DbProvider where
 import qualified Data.List as L
+import Options.Applicative.Types
 import Control.Applicative
 import Control.Monad
 import Data.Maybe
@@ -21,7 +22,7 @@ instance (Show DbProvider) where
           Ghc _          -> "ghc db index" 
           Db _           -> "ghc db index with directory narrowing" 
 
-fromSplit :: Char -> String -> Either String (String, Maybe String)
+fromSplit :: Char -> String -> ReadM (String, Maybe String)
 fromSplit c opt = 
   case opt of 
     []         -> return ([], Nothing) 
@@ -33,10 +34,10 @@ fromSplit c opt =
       (l, r) <- fromSplit c str
       return (s:l, r)
   where 
-    fromParam []      =  Right Nothing
+    fromParam []      =  return Nothing
     fromParam (c':str)=
       if c' == c then
-        Left $ "encountered delimeter(" ++ c:") twice" 
+        ReadM . Left . ErrorMsg $ "encountered delimeter(" ++ c:") twice" 
       else
         Just . maybe [c'] (c':) <$> fromParam str
 
@@ -48,18 +49,23 @@ toExec (Ghc args)          =
 toExec (Db fp)             = 
   (,) "ghc-pkg" ("list":["--package-db=" ++ fp]) 
 
-toProvider :: String -> Either String DbProvider
+toProvider :: String -> ReadM DbProvider
 toProvider expr = do 
   (prov, arg) <- fromSplit ',' expr
   join $ constructor prov <*> pure arg
   where 
-    constructor :: String -> Either String (Maybe String -> Either String DbProvider) 
-    constructor prov =   
-     maybe (Left "invalid db provider") Right $
-       -- return a constructor given an arg
-       L.lookup prov
-        [("ghc", Right . Ghc),
-         ("cabal", Right . CabalSandbox),
-         ("dir", fmap Db . reqArg "requires directory path")
-         ]
-    reqArg desc = maybe (Left desc) Right 
+    constructor :: String -> ReadM (Maybe String -> ReadM DbProvider) 
+    constructor prov =
+     ReadM $ maybe (Left . ErrorMsg $ "invalid db provider") Right f
+     where 
+      f :: Maybe (Maybe String -> ReadM DbProvider)
+      f = 
+        -- return a constructor given an arg
+        L.lookup prov
+         [("ghc"   , return . Ghc),
+          ("cabal" , return . CabalSandbox),
+          ("dir"   , 
+            maybe 
+              (ReadM . Left . ErrorMsg $ "requires directory path")
+              (return . Db))
+          ]
