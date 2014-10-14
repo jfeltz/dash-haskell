@@ -1,5 +1,5 @@
 name:                dash-haskell
-version:             1.0.0.0
+version:             1.0.0.1
 synopsis:            Command line tool to generate Dash docsets (IDE docs) from package haddock
 homepage:            http://www.github.com/jfeltz/dash-haskell
 Bug-reports:         https://github.com/jfeltz/dash-haskell/issues
@@ -103,6 +103,24 @@ description:
 
 executable dash-haskell
   main-is:             Main.hs
+  other-modules:       Pipes.Db
+                       Pipes.Conf
+                       Pipes.FileSystem
+                       Options
+                       Package
+                       Control.Monad.M 
+                       Data.String.Util
+                       Data.String.Indent
+                       Haddock
+                       Options.CabalConstraints
+                       Options.Documentation
+                       Options.Cabal
+                       Options.DbProvider
+                       Haddock.Sqlite
+                       Haddock.Artifact
+                       PackageId
+                       Package.Conf
+
   build-depends:       Cabal                >= 1.18
                      , base                 >= 4.7 && <4.8
                      , bytestring           >= 0.10.0.1
