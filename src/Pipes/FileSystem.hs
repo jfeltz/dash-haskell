@@ -23,15 +23,7 @@ import           Text.HTML.TagSoup.Match
 import           Haddock.Artifact
 import           Haddock.Sqlite
 
--- | See:
--- https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-data Plist = Plist
-    { cfBundleIdentifier   :: String
-    , cfBundleName         :: String
-    , docSetPlatformFamily :: String
-    } deriving Show
-
--- TODO/FIXME the utility of some of these fields are still unclear to me,
+-- TODO the utility of some of these fields are still unclear to me,
 -- at the moment they are filled simply to satisfy the docset spec.
 plist :: Ghc.PackageId -> BS.ByteString
 plist p = Data.ByteString.Char8.pack . unlines $
@@ -205,7 +197,7 @@ cons_writeFiles docsets_root = forever $ do
     <-< pipe_htmlConvert (pkg conf)
     <-< leafs (\p -> P.extension p /= Just "haddock") (htmlDir conf)
   
-  -- FIXME/TODO Since the haddock index is already produced in source docs
+  -- TODO Since the haddock index is already produced in source docs
   -- with latest packaging systems, this is likely unnecessary 
   -- liftIO $ do 
   --    putStrLn "running haddock indexes"

@@ -38,7 +38,7 @@ execs' s      = none { execs = s }
 suites' s     = none { suites = s } 
 
 -- | Parser for the cabal constraints option.
--- Note: I don't think this can be simpliifed with sepBy since the 
+-- Note: I don't think this can be simplifed with sepBy since the 
 -- non-sep parser may fail, causing input and positioning to be lost.
 -- If someone knows a better way, please advise/patch.
 constraints :: Maybe Constructor -> Parser CabalConstraints 
