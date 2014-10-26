@@ -23,7 +23,7 @@ import           Text.HTML.TagSoup.Match
 import           Haddock.Artifact
 import           Haddock.Sqlite
 
--- TODO the utility of some of these fields are still unclear to me,
+-- TODO the utility of some of these fields is still unclear to me,
 -- at the moment they are filled simply to satisfy the docset spec.
 plist :: Ghc.PackageId -> BS.ByteString
 plist p = Data.ByteString.Char8.pack . unlines $
