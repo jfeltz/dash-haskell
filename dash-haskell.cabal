@@ -144,3 +144,7 @@ executable dash-haskell
   ghc-options:         -Wall -rtsopts
   hs-source-dirs:      src
   default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/jfeltz/dash-haskell.git
