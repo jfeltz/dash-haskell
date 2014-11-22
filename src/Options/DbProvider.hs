@@ -37,7 +37,7 @@ fromSplit c opt =
     fromParam []      =  return Nothing
     fromParam (c':str)=
       if c' == c then
-        ReadM . Left . ErrorMsg $ "encountered delimeter(" ++ c:") twice" 
+        readerError $ "encountered delimeter(" ++ c:") twice"
       else
         Just . maybe [c'] (c':) <$> fromParam str
 
@@ -49,14 +49,15 @@ toExec (Ghc args)          =
 toExec (Db fp)             = 
   (,) "ghc-pkg" ("list":["--package-db=" ++ fp]) 
 
-toProvider :: String -> ReadM DbProvider
-toProvider expr = do 
+toProvider :: ReadM DbProvider
+toProvider = do
+  expr <- readerAsk
   (prov, arg) <- fromSplit ',' expr
   join $ constructor prov <*> pure arg
   where 
     constructor :: String -> ReadM (Maybe String -> ReadM DbProvider) 
     constructor prov =
-     ReadM $ maybe (Left . ErrorMsg $ "invalid db provider") Right f
+     maybe (readerError "invalid db provider") return f
      where 
       f :: Maybe (Maybe String -> ReadM DbProvider)
       f = 
@@ -66,6 +67,6 @@ toProvider expr = do
           ("cabal" , return . CabalSandbox),
           ("dir"   , 
             maybe 
-              (ReadM . Left . ErrorMsg $ "requires directory path")
+              (readerError "requires directory path")
               (return . Db))
           ]
