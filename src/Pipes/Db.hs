@@ -164,7 +164,7 @@ pipe_ConfFp prov = do
         lift . err $ 
           L.intercalate "\n"  
             ("The following packages were not found in searched package db's:" 
-            : S.toList unfound ++ ["Please be sure to provide exact package versions."])
+            : S.toList unfound)
 
       else -- yield over each returned file,
            --  types are added to make this _much_ easier to understand  

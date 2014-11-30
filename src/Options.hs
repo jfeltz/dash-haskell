@@ -29,11 +29,14 @@ data Options = Options {
   packages :: [C.PackageId]
 } deriving Show
 
-
-simpleParse' :: Text a => ReadM a
-simpleParse' = do
-    s <- readerAsk
-    maybe (readerError "failed parsing packages") return (simpleParse s)
+packageReadM :: Text a => ReadM a
+packageReadM = do
+  s <- readerAsk
+  maybe 
+   (readerError $ "failed parsing packages:\n " ++ s)
+   return 
+   -- Qualified, as simpleParse is a little obscure.
+   (Distribution.Text.simpleParse s) 
 
 parser :: Parser Options
 parser = 
@@ -62,14 +65,14 @@ parser =
      <> help "the cabal file to retrieve package dependencies from")
     <*>
     option toConstraints
-      (long "cabal-constraints" 
+      (long "cabal-constraints"
       <> short 'r'
       <> value none 
       <> metavar "executable=name, .."
       <> help "limit package results from a cabal file source, see documentation")
     <*>
     many (
-     argument simpleParse' (metavar "packages" <>
+     argument packageReadM (metavar "packages" <>
      help "a list of packages to specifically build, e.g. either-1.0.1 text"
      ))
 
