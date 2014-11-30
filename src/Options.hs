@@ -10,6 +10,7 @@ import           Data.Monoid
 import qualified Distribution.Package as C
 import qualified Distribution.Version as CV
 import           Distribution.Text
+import           Options.Applicative.Types (readerAsk)
 import           Options.Applicative.Builder
 import           Options.Applicative.Common
 import           Options.Cabal
@@ -18,7 +19,7 @@ import           Options.DbProvider
 import           PackageId
 import           Pipes
 import qualified Data.Set as S
-                 
+
 data Options = Options { 
   dbprovider :: DbProvider,
   outputDir  :: FilePath,
@@ -27,6 +28,15 @@ data Options = Options {
   cabalConstraints :: CabalConstraints, 
   packages :: [C.PackageId]
 } deriving Show
+
+packageReadM :: Text a => ReadM a
+packageReadM = do
+  s <- readerAsk
+  maybe 
+   (readerError $ "failed parsing packages:\n " ++ s)
+   return 
+   -- Qualified, as simpleParse is a little obscure.
+   (Distribution.Text.simpleParse s) 
 
 parser :: Parser Options
 parser = 
@@ -47,7 +57,7 @@ parser =
     <*>
     switch (long "quiet" <> short 'q' <> help "set to quiet output")
     <*>
-    option (return . Just) 
+    option (Just <$> readerAsk)
      (long "cabal"
      <> short 'c'  
      <> metavar "<file.cabal>" 
@@ -55,14 +65,14 @@ parser =
      <> help "the cabal file to retrieve package dependencies from")
     <*>
     option toConstraints
-      (long "cabal-constraints" 
+      (long "cabal-constraints"
       <> short 'r'
       <> value none 
       <> metavar "executable=name, .."
       <> help "limit package results from a cabal file source, see documentation")
     <*>
     many (
-     argument simpleParse (metavar "packages" <> 
+     argument packageReadM (metavar "packages" <>
      help "a list of packages to specifically build, e.g. either-1.0.1 text"
      ))
 
@@ -77,7 +87,7 @@ reduce = fromAsc . L.sort where
   -- an ascending list to determine a version
   fromAsc :: [C.PackageId] -> [C.PackageId]
   fromAsc []      = []
-  fromAsc (p:[])  = [p] 
+  fromAsc ([p])  = [p]
   fromAsc (p:nxt:rest)
     | p == nxt = -- duplicate 
       fromAsc (nxt:rest) 
@@ -88,7 +98,7 @@ reduce = fromAsc . L.sort where
         p : nxt : fromAsc rest 
     | otherwise = -- they're different packages
         p : fromAsc ( nxt : rest )
-  
+
 versionless :: String -> C.PackageId
 versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 
 

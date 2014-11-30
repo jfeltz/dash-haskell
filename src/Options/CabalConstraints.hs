@@ -84,9 +84,9 @@ constraints (Just ctor) = do
       notFollowedBy (char '=')
       return var
 
-toConstraints :: String -> O.ReadM CabalConstraints
-toConstraints expr = 
-  O.ReadM $ 
+toConstraints :: O.ReadM CabalConstraints
+toConstraints = do
+    expr <- O.readerAsk
     case parse (constraints Nothing) [] expr of 
-      Left err -> Left . O.ErrorMsg . show $ err
-      Right c -> Right c 
+      Left err -> O.readerError . show $ err
+      Right c -> return c

@@ -9,7 +9,7 @@ dash-haskell
   **keyword, module, and package searching:**
   ![listing](/img/listing.png?raw=true)
 
-The purpose of the dash-haskell is to facilitate Haskell documentation in IDE(s), with the following qualities:
+dash-haskell facilitates Haskell documentation in IDE(s) with the following qualities:
   
   * **Local**
 
