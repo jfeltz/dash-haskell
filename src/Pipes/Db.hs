@@ -38,41 +38,41 @@ toPkgMatch parsed = do
       modify (S.delete p)
       return . Just $ (p, Ghc.stringToPackageId parsed)
 
--- | A crude parser that extracts db -> package set relations based
+-- | A crude parser that extracts db -> package set mappings based
 -- on whitespace indentation 
-accumPaths :: 
+fromOutput :: 
   [String] -- output of ghc-pkg or ghc-pkg like listing
   -> S.Set String -- set of packages not yet associated to a db 
   -> [(FilePath, [(String, Ghc.PackageId)])]
   -> M [(FilePath, [(String, Ghc.PackageId)])]
-accumPaths [] _ assigned = 
+fromOutput [] _ assigned = 
   return assigned 
-accumPaths (l:rest) unassigned assigned = 
-  if S.null unassigned then -- we're done 
-    return assigned
+fromOutput (l:rest) unassoc assoc = 
+  if S.null unassoc then -- we're done 
+    return assoc
   else
-    case assigned of 
+    case assoc of 
       []     -> 
         if isPath l then
-          accumPaths rest unassigned [(toPath l, [])] 
+          fromOutput rest unassoc [(toPath l, [])] 
         else
           err "parse error on package list output, check program used" 
       ((db, members):dbs) ->
-        uncurry (accumPaths rest) $ 
+        uncurry (fromOutput rest) $ 
           if isPath l then -- it's another db
-            (,) unassigned ((toPath l, []):assigned)
+            (,) unassoc ((toPath l, []):assoc)
           else -- it could be a package 
             if isPackage l then
               let 
-                (r, unassigned') =
-                  runState (toPkgMatch (unhide $ drop 4 l)) unassigned
-              in (,) unassigned' $ 
+                (r, unassoc') =
+                  runState (toPkgMatch (unhide $ drop 4 l)) unassoc
+              in (,) unassoc' $ 
                    maybe 
-                     assigned -- no change 
+                     assoc -- no change 
                      (\p -> (db, p : members) : dbs) -- at to members 
                      r
             else
-              (unassigned, assigned)
+              (unassoc, assoc)
   where
     unhide :: String -> String
     unhide ('(':str) = L.take (L.length str - 1) str 
@@ -98,10 +98,15 @@ toMapping cmd args pkgs = do
         "failed to retrieve package db's from " ++ cmd ++", output:"
         ++ out ++ '\n':err' 
     (ExitSuccess, out, _) ->
-      accumPaths (L.lines out) pkgs []
+      fromOutput (L.lines out) pkgs []
 
--- | This returns a non-empty list of package db's, or failure.
-fromProvider :: DbProvider -> S.Set String -> M [(FilePath, [(String, Ghc.PackageId)])]
+-- | Given a set of packages, this returns a non-empty list of package db's
+-- offering them, or failure.
+fromProvider :: 
+  DbProvider 
+  -> S.Set String 
+  -> M [(FilePath, [(String, Ghc.PackageId)])] 
+  -- ^ (database dir, [package string -> packageId]) 
 fromProvider prov pkgs = do
   case prov of 
     (Ghc _)          -> toMapping cmd extra_args pkgs 

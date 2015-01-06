@@ -23,14 +23,6 @@ newtype Targets = Targets { mapping :: M.Map String (S.Set Package) }
 fromTargets :: Targets -> S.Set Package
 fromTargets = S.unions . M.elems . mapping 
     
-data DependencyDescription =
-  DependencyDescription { 
-    library :: Maybe (S.Set Package),
-    execs :: Targets,
-    suites :: Targets, 
-    benchmarks :: Targets
- } 
-
 -- | Return the packages to use from the target type, or fail with unfound targets.
 fromTargetType :: S.Set String -> Targets -> Either [String] (S.Set String) 
 fromTargetType narrowing tgts = do
@@ -51,6 +43,14 @@ fromTargetType narrowing tgts = do
     . M.toList
     . M.intersection (mapping tgts)
     . M.fromList $ zip (S.toList used_targets) (replicate (S.size used_targets) ())
+
+data DependencyDescription =
+  DependencyDescription { 
+    library :: Maybe (S.Set Package),
+    execs :: Targets,
+    suites :: Targets, 
+    benchmarks :: Targets
+ } 
 
 toPackages :: FilePath -> DependencyDescription -> OC.CabalConstraints -> M (S.Set Package) 
 toPackages cabal desc constraints = 
@@ -110,7 +110,8 @@ toTargets =
   in
     Targets . M.fromList . map (uncurry toStrDeps)
 
--- | Given the defined constraints, return packages satisfying from the cabal file.
+-- | Given the defined constraints,
+-- return packages satisfying from the cabal file.
 readPackages :: FilePath -> OC.CabalConstraints -> M (S.Set Package)
 readPackages cabal constraints = do 
   parse_result <- liftIO $ C.parsePackageDescription <$> readFile cabal

@@ -13,15 +13,7 @@ import           Package.Conf
 import qualified PackageConfig as Ghc
 import           Pipes
 import qualified System.Directory as D
-
-checkPath :: Bool -> P.FilePath -> String -> IO (Maybe String) 
-checkPath dir path name = do 
-  exists <- predicate . P.encodeString $ path 
-  return $ if exists then Nothing else Just $ "missing: " ++ name ++ ' ':msg'
-  where 
-    (predicate, msg') =
-      if dir then (D.doesDirectoryExist, "dir") else (D.doesFileExist, "file")
-
+       
 confError :: FilePath -> String -> M r
 confError path fatal = 
   err $ preposition "parse errors" "in" "conf file" path [fatal] 
@@ -44,11 +36,19 @@ fromParseResults conf (ParseOk cabalWarnings fields)
         -- We're not using Cabal's type information beyond just
         -- extracting package data. Ghc types are used for the rest.
         (Ghc.mkPackageId . sourcePackageId $ fields)
-        -- TODO Respect multiple interfaces, however 
-        -- this is not the common consensus for use of haddock interfaces. 
+        -- TODO Respect multiple interfaces, however this is not the common
+        -- consensus for use of haddock interfaces. 
         (P.decodeString (head $ haddockInterfaces fields))
         (P.decodeString $ head (haddockHTMLs fields) ++ "/")
         (DIP.exposed fields)
+
+checkPath :: Bool -> P.FilePath -> String -> IO (Maybe String) 
+checkPath dir path name = do 
+  exists <- predicate . P.encodeString $ path 
+  return $ if exists then Nothing else Just $ "missing: " ++ name ++ ' ':msg'
+  where 
+    (predicate, msg') =
+      if dir then (D.doesDirectoryExist, "dir") else (D.doesFileExist, "file")
 
 diagnosePaths :: Conf -> M [String]
 diagnosePaths conf = do
