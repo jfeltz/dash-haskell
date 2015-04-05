@@ -1,10 +1,10 @@
 module Package.Conf where
-import qualified Module as Ghc
 import qualified Filesystem.Path.CurrentOS as P
+import Distribution.Package (PackageIdentifier)
 
 data Conf = Conf
-  { pkg  :: Ghc.PackageId
+  { pkg           :: PackageIdentifier
   , interfaceFile :: P.FilePath -- interface, i.e. .haddock file
-  , htmlDir   :: P.FilePath -- root html source directory
-  , exposed  :: Bool -- module exposure flag
+  , htmlDir       :: P.FilePath -- root html source directory
+  , exposed       :: Bool -- module exposure flag
   }

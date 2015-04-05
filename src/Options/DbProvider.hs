@@ -1,9 +1,8 @@
 module Options.DbProvider where
+import           Control.Monad
 import qualified Data.List as L
-import Options.Applicative.Types
-import Control.Applicative
-import Control.Monad
-import Data.Maybe
+import           Data.Maybe
+import           Options.Applicative.Types
 
 data DbProvider = 
   CabalSandbox (Maybe String)
@@ -14,7 +13,9 @@ instance (Show DbProvider) where
   show dbp = 
     let (cmd, args) = toExec dbp in 
       L.intercalate "\n"
-       ["lookup strategy: " ++  desc, "cmd: " ++ cmd ++ "\nargs: " ++ unwords args] 
+       ["lookup strategy: " ++  desc,
+        "cmd: " ++ cmd,
+         "args: " ++ unwords args] 
     where
       desc = 
         case dbp of 

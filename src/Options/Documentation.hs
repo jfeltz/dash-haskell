@@ -17,8 +17,8 @@ type Documentation = M.Map Tag Topic
 tags :: Documentation -> [String] 
 tags = M.keys 
 
-cabalTopic, providerTopic, outputTopic, packageTopic :: Topic
-cabalTopic = 
+cabalConstraintsTopic, cabalSourcingTopic, providerTopic, outputTopic, packageTopic :: Topic
+cabalConstraintsTopic = 
   Topic "cabal constraints" $
     L.intercalate "\n" [
       "These are constraints on packages pulled from a cabal file source.",
@@ -35,6 +35,29 @@ cabalTopic =
       " excluded    : unversioned packages to avoid using"
    ]
 
+cabalSourcingTopic = 
+  Topic "cabal sourcing" $
+    L.intercalate "\n" [
+      "This command pulls package selections from a cabal file",
+      "  e.g. -c <project.cabal>\n",
+      "This by default selects the highest version in the range for a package.\n",
+      "Note:",
+      "This command is not the same as a db provider.", 
+      "This only uses package names and versions from the cabal file,", 
+      "and doesn't process any information from Package Db's, other than what",
+      "cabal uses internally to determine available versions.\n",
+      "Note:",
+      "If the package is also requested unversioned elsewhere,", 
+      "i.e. on the command line,", 
+      "it is narrowed to the versioned range result.", 
+      "If the other is instead versioned and not equal to the highest,",
+      "both packages are processed for their docset.\n",
+      "Note:",
+      "If the package occurs more than once in the cabal file", 
+      "with differint range, neither package is taken", 
+      "Pulled packages can be constrained, see: cabal-constraints." 
+      ]
+
 providerTopic = Topic "package database provider" $
   L.intercalate "\n" [
     "The external program to call to produce package databases\n"
@@ -45,7 +68,7 @@ providerTopic = Topic "package database provider" $
     , "Note, only one provider at once is supported at this time.\n"
     , "pairings for <var,args>:"
     , " var                                      args "
-    , "----------------------------------------- --------------------------------"
+    , "----------------------------------------- -------------------------------"
     , " cabal : use cabal sandbox package db(s)  flag string to pass to cabal"
     , " ghc   : use ghc's package db(s),         flag string to pass to ghc"
     , " dir   : use package db dir directory     the package db directory"
@@ -76,11 +99,12 @@ docs :: Documentation
 docs = 
   let fromListing m (t,l) = toEntry (S.fromList l) t m in 
     L.foldl fromListing M.empty [
-      (cabalTopic    , ["r", "cabal-constraints"]),
-      (providerTopic , ["p", "dbprovider", "provider"]),
-      (outputTopic   , ["o", "outputdir", "output", "docset"]),
-      (packageTopic  , ["packages", "package"])
-    ]
+      (cabalSourcingTopic    , ["c", "cabal"]),
+      (cabalConstraintsTopic , ["r", "cabal-constraints"]),
+      (providerTopic         , ["p", "dbprovider", "provider"]),
+      (outputTopic           , ["o", "outputdir", "output", "docset"]),
+      (packageTopic          , ["packages", "package"])
+      ]
 
 -- | Given an arbitrary stream of options,
 -- convert to possible topic indexes for documenation lookup.

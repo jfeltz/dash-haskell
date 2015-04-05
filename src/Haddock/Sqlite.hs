@@ -8,6 +8,9 @@ import           Database.SQLite.Simple
 import           Haddock.Artifact
 import qualified Module as Ghc
 import qualified Name as Ghc
+import Distribution.Package
+import Distribution.ModuleName
+import Distribution.Text
 
 data IndexRow = IndexRow {
   nameAttr :: T.Text 
@@ -49,20 +52,22 @@ insertRow conn =
   execute conn 
     (Query . T.pack $ "INSERT OR IGNORE INTO " ++ table ++ " VALUES (?,?,?,?);")
 
-modUrl :: Ghc.Module -> String
-modUrl = 
-  map (\c-> if c == '.' then '-' else c)
-    . Ghc.moduleNameString 
-    . Ghc.moduleName 
+modStr :: ModuleName -> String 
+modStr = display 
+
+modUrl :: ModuleName -> String
+modUrl = map (\c-> if c == '.' then '-' else c) . modStr 
 
 escapeSpecial :: String -> String 
 escapeSpecial = 
-  concatMap (\c -> if c `elem` specialChars then '-': show (fromEnum c) ++ "-" else [c])
+  concatMap 
+    (\c -> if c `elem` specialChars then '-': show (fromEnum c) ++ "-" else [c])
   where
+    specialChars  :: String 
     specialChars  = "!&|+$%(,)*<>-/=#^\\?"
  
 -- | Update the sqlite database with the given haddock artifact.
-fromArtifact :: Ghc.PackageId -> Connection -> Artifact -> M ()
+fromArtifact :: PackageIdentifier -> Connection -> Artifact -> M ()
 fromArtifact p conn art = do
   attributes <- toAttributes
   case attributes of 
@@ -77,7 +82,6 @@ fromArtifact p conn art = do
     Nothing -> 
       return ()
   where
-    modStr m = Ghc.moduleNameString $ Ghc.moduleName m
     -- | Convert haddock artifacts to attributes for table update.
     toAttributes = 
       case art of 
@@ -86,21 +90,24 @@ fromArtifact p conn art = do
          return Nothing 
        Package                 ->  
          return . Just $ 
-           (Ghc.packageIdString p, "Package", "index.html", [])
-       Module ghcmod           -> 
+           (show p, "Package", "index.html", [])
+       Module mod_name           -> 
          return . Just $
-            (modStr ghcmod, "Module" , modUrl ghcmod ++ ".html" , modStr ghcmod)
-       Function ghcmod ghcname -> 
-         let (declType, pfx) = toPair ghcname in
+            (modStr mod_name, 
+             "Module" , 
+             modUrl mod_name ++ ".html" ,
+             show mod_name)
+       Function mod' ghc_name -> 
+         let (declType, pfx) = toPair ghc_name in
            return . Just $ 
-             ( modStr ghcmod ++ '.':Ghc.getOccString ghcname,
+             (modStr mod' ++ '.': Ghc.getOccString ghc_name,
               declType, 
               url pfx,
-              modStr ghcmod)
+              modStr mod')
           where
             url pfx =
-              modUrl ghcmod ++ ".html#" ++ pfx : ':' : 
-                escapeSpecial (Ghc.getOccString ghcname)
+              modUrl mod' ++ ".html#" ++ pfx : ':' : 
+                escapeSpecial (Ghc.getOccString ghc_name)
             toPair n
               | Ghc.isTyConName   n = ("Type"        , 't')
               | Ghc.isDataConName n = ("Constructor" , 'v')

@@ -18,7 +18,7 @@ import           Options.CabalConstraints (toConstraints, none, CabalConstraints
 import           Options.DbProvider
 import           PackageId
 import           Pipes
-import qualified Data.Set as S
+-- import qualified Data.Set as S
 
 data Options = Options { 
   dbprovider :: DbProvider,
@@ -26,7 +26,7 @@ data Options = Options {
   quiet    :: Bool,
   cabal :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
-  packages :: [C.PackageId]
+  packages :: [C.Dependency]
 } deriving Show
 
 packageReadM :: Text a => ReadM a
@@ -102,12 +102,16 @@ reduce = fromAsc . L.sort where
 versionless :: String -> C.PackageId
 versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 
 
-prod_Packages :: Options -> ProducerM (S.Set String) () 
-prod_Packages options = do
-  cabal_dependencies <-
-    lift $ case cabal options of 
-      Nothing -> return [] 
-      Just fp -> (S.toList . S.map versionless) 
-                 <$> readPackages fp (cabalConstraints options)
-  yield . S.fromList . map (show . disp) $ 
-    reduce (packages options ++ cabal_dependencies)
+-- | This yields requested packages from command line and cabal file, if any.
+-- post-condition:
+--  a version overlap relation doesn't exist in dependency list
+prod_Dependencies :: Options -> ProducerM [C.Dependency] () 
+prod_Dependencies options = do 
+  cabal_deps <- lift fromCabalFile
+  yield . nub_on_version False . name_sorted $ cabal_deps ++ packages options
+  where
+    -- This produces a version disjoint package list from the cabal file.
+    fromCabalFile :: M [C.Dependency] 
+    fromCabalFile =  
+      maybe (return []) (`readPackages` cabalConstraints options) $
+        cabal options

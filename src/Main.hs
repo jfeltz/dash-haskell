@@ -28,7 +28,7 @@ main = do
        cons_writeFiles (P.decodeString $ outputDir options) -- writes converted html, haddock, and sql db
        <-< pipe_Conf              -- yields vetted package configurations
        <-< pipe_ConfFp (dbprovider options)  -- yields GHC package config files
-       <-< prod_Packages options
+       <-< prod_Dependencies options -- yields packages from options
     (_, rest) -> toHelp docs rest
   
   where 

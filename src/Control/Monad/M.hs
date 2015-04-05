@@ -3,7 +3,7 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import Control.Monad.IO.Class
 import Control.Monad
-import Control.Applicative ((<$>))
+
 import System.Exit
 import Pipes
 

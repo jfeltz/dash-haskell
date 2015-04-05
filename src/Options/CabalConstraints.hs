@@ -1,7 +1,5 @@
 module Options.CabalConstraints where
-
 import qualified Data.Set as S
-import Data.Monoid
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many, optional)
 import Control.Monad
