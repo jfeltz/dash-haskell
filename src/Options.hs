@@ -8,23 +8,24 @@ import qualified Data.List as L
 
 import           Data.Monoid
 import qualified Distribution.Package as C
-import qualified Distribution.Version as CV
 import           Distribution.Text
+import qualified Distribution.Version as CV
+
 import           Options.Applicative.Types (readerAsk)
 import           Options.Applicative.Builder
 import           Options.Applicative.Common
 import           Options.Cabal
 import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
 import           Options.DbProvider
+
 import           PackageId
 import           Pipes
--- import qualified Data.Set as S
 
 data Options = Options { 
   dbprovider :: DbProvider,
   outputDir  :: FilePath,
   quiet    :: Bool,
-  cabal :: Maybe FilePath,
+  cabalFile :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
   packages :: [C.Dependency]
 } deriving Show
@@ -86,8 +87,8 @@ reduce = fromAsc . L.sort where
   -- Here we exploit the fact that you only need to examine the next member of 
   -- an ascending list to determine a version
   fromAsc :: [C.PackageId] -> [C.PackageId]
-  fromAsc []      = []
-  fromAsc ([p])  = [p]
+  fromAsc []    = []
+  fromAsc ([p]) = [p]
   fromAsc (p:nxt:rest)
     | p == nxt = -- duplicate 
       fromAsc (nxt:rest) 
@@ -104,14 +105,15 @@ versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] []
 
 -- | This yields requested packages from command line and cabal file, if any.
 -- post-condition:
---  a version overlap relation doesn't exist in dependency list
+--  a version overlap doesn't exist in dependency list
 prod_Dependencies :: Options -> ProducerM [C.Dependency] () 
 prod_Dependencies options = do 
-  cabal_deps <- lift fromCabalFile
-  yield . nub_on_version False . name_sorted $ cabal_deps ++ packages options
+  cabal_deps <- lift cabalDeps
+  yield . nub' $ cabal_deps ++ packages options
   where
     -- This produces a version disjoint package list from the cabal file.
-    fromCabalFile :: M [C.Dependency] 
-    fromCabalFile =  
-      maybe (return []) (`readPackages` cabalConstraints options) $
-        cabal options
+    cabalDeps :: M [C.Dependency] 
+    cabalDeps =  
+      maybe 
+        (return [])
+        (`readPackages` cabalConstraints options) $ cabalFile options
