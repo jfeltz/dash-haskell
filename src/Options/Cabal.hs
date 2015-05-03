@@ -7,10 +7,10 @@
 module Options.Cabal where
 import qualified Data.Set as S
 import           Control.Monad.M
-import           Data.Monoid
+
+
 import qualified Data.Map as M
 import qualified Data.List as L
-import           Control.Applicative
 import           Control.Monad
 import qualified Distribution.PackageDescription.Parse as C
 import qualified Distribution.Package as C
@@ -36,16 +36,18 @@ nubconcat = L.nub . L.concat
 -- unfound targets.
 fromTargetType :: S.Set String -> Targets -> Either [String] [C.Dependency] 
 fromTargetType narrowing tgts = do
-  used_targets <- -- return a list of used targets 
+  used_targets <-
+    -- Return a list of used targets 
     if S.null narrowing then
        return . M.keysSet . mapping $ tgts 
-    else -- error check narrowed packages
+    else -- Error check narrowed packages
       let found   = S.intersection narrowing $ M.keysSet (mapping tgts)
           unfound = S.difference narrowing found
       in if not . S.null $ unfound then
         Left . S.toList $ unfound 
       else 
         return found 
+  
   -- subset of map intersecting with used targets -> reduced list of dependencies
   return $ 
     nubconcat
@@ -54,8 +56,7 @@ fromTargetType narrowing tgts = do
     . M.intersection (mapping tgts)
     . M.fromList $ zip (S.toList used_targets) (replicate (S.size used_targets) ())
 
--- TODO 
--- This could be made more resilent WRT changes in cabal file format.
+-- TODO Could be made more resilent WRT changes in cabal file format.
 data DependencyDescription =
   DependencyDescription { 
     -- Inv: C.Dependencies are non-duplicate
@@ -71,42 +72,35 @@ fromTargets = nubconcat . M.elems . mapping
 toPkgName :: C.Dependency -> String
 toPkgName (C.Dependency (C.PackageName name) _) = name
     
-name_sorted :: [C.Dependency] -> [C.Dependency] 
-name_sorted = L.sortBy (on compare toPkgName) 
-    
 -- TODO Test for expected behavior
 vintersection :: C.Dependency -> C.Dependency -> Bool
 vintersection (C.Dependency _ lv) (C.Dependency _ rv) = 
  C.intersectVersionRanges lv rv == C.noVersion
 
--- | Post-condition:
---   dependency list has no version overlap relation
---   for packages 
+-- | Post-condition: no version overlap
 nub' :: [C.Dependency] -> [C.Dependency]
 nub' = L.nubBy (\l r -> toPkgName l == toPkgName r && vintersection l r)
-
+     
 fromCabalFile :: 
   FilePath -> DependencyDescription -> OC.CabalConstraints -> M [C.Dependency] 
 fromCabalFile cabal desc constraints = 
   case toPkgs pairings of
     Left unfound ->
-      err $ 
-        preposition 
-          "failed to find targets" 
-          "in"
-          "cabal file"
-          cabal 
-          unfound
+      err $ preposition "failed to find targets" "in" "cabal file" cabal unfound
     Right found  -> 
       let 
         matched_excluded = 
           S.intersection 
             (S.fromList $ map toPkgName found) (OC.excluded constraints)
       in do
+        let
+          unfound_excluded =
+            S.difference (OC.excluded constraints) matched_excluded 
         -- Print packages which were intended to be excluded, but
         -- weren't found anyway.  
-        printUnfoundExcluded . S.toList $ 
-          S.difference (OC.excluded constraints) matched_excluded 
+        unless (S.null unfound_excluded) $
+          warningList "packages to exclude were not found:" . S.toList $
+           unfound_excluded 
          
         -- Calculate the packages with overlapped ranges 
         let 
@@ -120,26 +114,18 @@ fromCabalFile cabal desc constraints =
             disjoint   = nub' sorted
             overlapped = sorted L.\\ disjoint 
         
-        -- Print version overlapped (removed) packages if any.  
-        printOverlapped overlapped 
+        -- Print version overlapped (removed packages) if any.  
+        unless (L.null overlapped) $
+          warningList 
+            ("removed the following packages from processing due version" 
+            ++ " range overlap:")
+            overlapped
 
         return disjoint 
   where
-    printUnfoundExcluded :: [String] -> M ()
-    printUnfoundExcluded []               =
-      return () 
-    printUnfoundExcluded unfound_excluded =  
-      warning . L.intercalate "\n" $
-        "packages to exclude were not found:" : unfound_excluded
-    
-    printOverlapped :: [C.Dependency] -> M ()
-    printOverlapped []               =
-      return () 
-    printOverlapped overlapped =  
-      warning . L.intercalate "\n" $
-        "removed the following packages from processing due version range overlap:" :
-        map show overlapped -- TODO check if appropriate for human reading 
-      
+    name_sorted :: [C.Dependency] -> [C.Dependency] 
+    name_sorted = L.sortBy (on compare toPkgName) 
+
     -- | Produce a list of targets to evaluate based off selection, i.e.
     -- if any fst member of tuple is non-empty, the subset is returned.
     -- if all are non-empty, all are considered 
@@ -169,7 +155,7 @@ fromCabalFile cabal desc constraints =
         zip (map ($ constraints) [OC.execs, OC.suites, OC.benchmarks])
             (map ($ desc)   [execs, suites, benchmarks]) 
 
-    -- | Filter the depedency list by set name membership,
+    -- | Filter the dependency list by set name membership,
     set_intersection :: S.Set String -> [C.Dependency] -> [C.Dependency] 
     set_intersection selected_packages = 
       L.filter (\d -> S.member (toPkgName d) selected_packages) 
@@ -193,7 +179,7 @@ readPackages cabal_path constraints = do
   case parse_result of
     (C.ParseFailed fail_msg) ->
       err . show $ fail_msg
-    (C.ParseOk warnings desc) ->	do
+    (C.ParseOk warnings desc) -> do
       unless (L.null warnings) . warning $ 
         preposition 
           "warnings during parse" 
