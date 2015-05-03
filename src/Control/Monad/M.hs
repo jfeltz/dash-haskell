@@ -3,6 +3,7 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import Control.Monad.IO.Class
 import Control.Monad
+import qualified Data.List as L
 
 import System.Exit
 import Pipes
@@ -23,6 +24,9 @@ warning :: String -> M ()
 warning str = do 
   i <- indention <$> env 
   liftIO . putStr $ fromIndent ("warning: " ++ str) i
+
+warningList :: (Show a) => String -> [a] -> M ()
+warningList msg' = warning . L.intercalate "\n" . (:) msg' . map show 
 
 indent :: Int -> Env -> Env
 indent amount (Env i v) = Env (i + amount) v
