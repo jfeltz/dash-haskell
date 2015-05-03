@@ -77,29 +77,6 @@ parser =
      help "a list of packages to specifically build, e.g. either-1.0.1 text"
      ))
 
--- | Given two lists of package satisfying strings, 
--- return a list that is non-duplicate, the most versioned of the two.
--- e.g. if 'either-4.1.0' is in one, and 'either' is the other, 
--- the versioned is chosen. If both are versioned, both appear in
--- the final result.
-reduce :: [C.PackageId] -> [C.PackageId]
-reduce = fromAsc . L.sort where
-  -- Here we exploit the fact that you only need to examine the next member of 
-  -- an ascending list to determine a version
-  fromAsc :: [C.PackageId] -> [C.PackageId]
-  fromAsc []    = []
-  fromAsc ([p]) = [p]
-  fromAsc (p:nxt:rest)
-    | p == nxt = -- duplicate 
-      fromAsc (nxt:rest) 
-    | unversioned p == unversioned nxt = 
-      if unversioned p == p then
-        fromAsc $ nxt:rest
-      else -- both are versioned by list ordering
-        p : nxt : fromAsc rest 
-    | otherwise = -- they're different packages
-        p : fromAsc ( nxt : rest )
-
 versionless :: String -> C.PackageId
 versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 
 
