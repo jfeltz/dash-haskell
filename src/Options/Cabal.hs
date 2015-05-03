@@ -25,50 +25,55 @@ import Data.Function (on)
 -- | A mapping of cabal build target -> [C.Dependency],
 --  e.g. executable:foo to list of cabal dependencies. 
 -- Inv: C.Dependencies are non-duplicate
-newtype Targets = Targets { mapping :: M.Map String [C.Dependency] }
+type TargetToDeps = M.Map String [C.Dependency]
 
 -- | This is a helper to make the below cleaner.
 -- Horribly inefficient, though N of N^2 will be small in practice. 
 nubconcat :: (Eq a) => [[a]] -> [a]
 nubconcat = L.nub . L.concat   
 
+toDeps :: TargetToDeps -> [C.Dependency] 
+toDeps = nubconcat . M.elems
+
+fromPairings :: [(String, C.CondTree a [C.Dependency] b)] -> TargetToDeps
+fromPairings = M.fromList . map (uncurry f)
+  where f target tree = (target, C.condTreeConstraints tree)
+
 -- | Return the packages to use from the target type, or fail with
--- unfound targets.
-fromTargetType :: S.Set String -> Targets -> Either [String] [C.Dependency] 
+-- unfound TargetToDeps.
+fromTargetType :: S.Set String -> TargetToDeps -> Either [String] [C.Dependency] 
 fromTargetType narrowing tgts = do
-  used_targets <-
-    -- Return a list of used targets 
+  used_TargetToDeps <-
+    -- Return a list of used TargetToDeps 
     if S.null narrowing then
-       return . M.keysSet . mapping $ tgts 
+       return . M.keysSet $ tgts 
     else -- Error check narrowed packages
-      let found   = S.intersection narrowing $ M.keysSet (mapping tgts)
+      let found   = S.intersection narrowing $ M.keysSet tgts
           unfound = S.difference narrowing found
       in if not . S.null $ unfound then
         Left . S.toList $ unfound 
       else 
         return found 
   
-  -- subset of map intersecting with used targets -> reduced list of dependencies
+  -- subset of map intersecting with used TargetToDeps -> reduced list of dependencies
   return $ 
     nubconcat
     . map snd
     . M.toList
-    . M.intersection (mapping tgts)
-    . M.fromList $ zip (S.toList used_targets) (replicate (S.size used_targets) ())
+    . M.intersection tgts
+    . M.fromList $
+    zip (S.toList used_TargetToDeps) (replicate (S.size used_TargetToDeps) ())
 
 -- TODO Could be made more resilent WRT changes in cabal file format.
 data DependencyDescription =
   DependencyDescription { 
     -- Inv: C.Dependencies are non-duplicate
-    library :: Maybe [C.Dependency],
-    execs :: Targets,
-    suites :: Targets, 
-    benchmarks :: Targets
+    library    :: Maybe [C.Dependency],
+    execs      :: TargetToDeps,
+    suites     :: TargetToDeps, 
+    benchmarks :: TargetToDeps
   } 
 
-fromTargets :: Targets -> [C.Dependency] 
-fromTargets = nubconcat . M.elems . mapping 
-    
 toPkgName :: C.Dependency -> String
 toPkgName (C.Dependency (C.PackageName name) _) = name
     
@@ -80,13 +85,13 @@ vintersection (C.Dependency _ lv) (C.Dependency _ rv) =
 -- | Post-condition: no version overlap
 nub' :: [C.Dependency] -> [C.Dependency]
 nub' = L.nubBy (\l r -> toPkgName l == toPkgName r && vintersection l r)
-     
+
 fromCabalFile :: 
   FilePath -> DependencyDescription -> OC.CabalConstraints -> M [C.Dependency] 
 fromCabalFile cabal desc constraints = 
   case toPkgs pairings of
     Left unfound ->
-      err $ preposition "failed to find targets" "in" "cabal file" cabal unfound
+      err $ preposition "failed to find TargetToDeps" "in" "cabal file" cabal unfound
     Right found  -> 
       let 
         matched_excluded = 
@@ -96,6 +101,7 @@ fromCabalFile cabal desc constraints =
         let
           unfound_excluded =
             S.difference (OC.excluded constraints) matched_excluded 
+        
         -- Print packages which were intended to be excluded, but
         -- weren't found anyway.  
         unless (S.null unfound_excluded) $
@@ -106,11 +112,9 @@ fromCabalFile cabal desc constraints =
         let 
             unexcluded = 
               L.filter (flip S.member matched_excluded . toPkgName) found
-            sorted     = name_sorted unexcluded -- sorted for readability
-            -- nub' can be pretty destructive here if there is range overlap
-            -- in the versions. dash-haskell can't be expected to otherwise
-            -- determine the user's intent in this situation, so we instead
-            -- remove offenders.
+            sorted     = name_sorted unexcluded -- for readability
+
+            -- TODO doc this behavior
             disjoint   = nub' sorted
             overlapped = sorted L.\\ disjoint 
         
@@ -126,49 +130,38 @@ fromCabalFile cabal desc constraints =
     name_sorted :: [C.Dependency] -> [C.Dependency] 
     name_sorted = L.sortBy (on compare toPkgName) 
 
-    -- | Produce a list of targets to evaluate based off selection, i.e.
+    -- | Produce a list of TargetToDeps to evaluate based off selection, i.e.
     -- if any fst member of tuple is non-empty, the subset is returned.
     -- if all are non-empty, all are considered 
     
     toPkgs :: 
-      [(S.Set String, Targets)] -- Filtered packages for targets 
+      [(S.Set String, TargetToDeps)] -- Filtered packages for TargetToDeps 
       -> Either [String] [C.Dependency] 
     toPkgs list =
-      nubconcat <$> case L.partition (S.null . fst) list of
+      nubconcat <$>
+       case L.partition (S.null . fst) list of
         (non_selections, []) -> 
-          Right . map (fromTargets . snd) $ non_selections  
+          Right . map (toDeps . snd) $ non_selections  
         (_, selections)      -> 
           case partitionEithers (L.map (uncurry fromTargetType) selections) of 
             ([],lists)   -> Right lists 
             (unfound,_) -> Left . nubconcat $ unfound 
       
-    -- | Return pairings of expected cabal targets to actual cabal targets
-    pairings :: [(S.Set String, Targets)] 
+    -- | Return Pairingss of expected cabal TargetToDeps to actual cabal TargetToDeps
+    pairings :: [(S.Set String, TargetToDeps)] 
     pairings = 
-      let 
-        lib_pairing :: (S.Set String, Targets)
-        lib_pairing = 
-          (if OC.lib constraints then S.singleton "library" else mempty,
-           Targets $ maybe mempty (M.singleton "library") (library desc)) 
-      in
-      lib_pairing :
+      lib :
         zip (map ($ constraints) [OC.execs, OC.suites, OC.benchmarks])
-            (map ($ desc)   [execs, suites, benchmarks]) 
+            (map ($ desc)        [execs, suites, benchmarks]) 
+      where 
+        lib :: (S.Set String, TargetToDeps)
+        lib = 
+          (,) (if OC.lib constraints then S.singleton "library" else mempty )
+              (maybe mempty (M.singleton "library") (library desc))
 
-    -- | Filter the dependency list by set name membership,
-    set_intersection :: S.Set String -> [C.Dependency] -> [C.Dependency] 
-    set_intersection selected_packages = 
-      L.filter (\d -> S.member (toPkgName d) selected_packages) 
-    
 toStrName :: C.Dependency -> String
 toStrName (C.Dependency (C.PackageName name) _) = name
   
-toTargets :: [(String, C.CondTree a [C.Dependency] b)] -> Targets
-toTargets = 
-    Targets . M.fromList . map (uncurry toDeps)
-  where 
-    toDeps target tree = (target, C.condTreeConstraints tree)
-
 -- | Given the defined constraints, return a list with the
 -- following properties: 
 -- 1 version overlap is not a relation for deps's taken as a set 
@@ -182,10 +175,7 @@ readPackages cabal_path constraints = do
     (C.ParseOk warnings desc) -> do
       unless (L.null warnings) . warning $ 
         preposition 
-          "warnings during parse" 
-          "of"
-          "cabal file"
-          "warnings"
+          "warnings during parse" "of" "cabal file" "warnings"
           (map show warnings)
       fromCabalFile cabal_path (toDescription desc) constraints 
    where
@@ -194,6 +184,6 @@ readPackages cabal_path constraints = do
     toDescription gpd =  
       DependencyDescription
         (C.condTreeConstraints <$> C.condLibrary gpd)
-        (toTargets . C.condExecutables $ gpd)
-        (toTargets . C.condTestSuites $ gpd)
-        (toTargets . C.condBenchmarks $ gpd)
+        (fromPairings . C.condExecutables $ gpd)
+        (fromPairings . C.condTestSuites $ gpd)
+        (fromPairings . C.condBenchmarks $ gpd)
