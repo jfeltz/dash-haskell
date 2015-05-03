@@ -13,27 +13,25 @@ instance (Show DbProvider) where
   show dbp = 
     let (cmd, args) = toExec dbp in 
       L.intercalate "\n"
-       ["lookup strategy: " ++  desc,
-        "cmd: " ++ cmd,
-         "args: " ++ unwords args] 
+       ["lookup strategy: " ++  desc, "cmd: " ++ cmd, "args: " ++ unwords args] 
     where
       desc = 
         case dbp of 
           CabalSandbox _ -> "cabal sandbox db index" 
-          Ghc _          -> "ghc db index" 
-          Db _           -> "ghc db index with directory narrowing" 
+          Ghc          _ -> "ghc db index" 
+          Db           _ -> "ghc db index with directory narrowing" 
 
 fromSplit :: Char -> String -> ReadM (String, Maybe String)
 fromSplit c opt = 
   case opt of 
-    []         -> return ([], Nothing) 
+    []      -> return ([], Nothing) 
     (s:str) ->
      if s == c then do
-      param <- fromParam str 
-      return ([], param)
+       param <- fromParam str 
+       return ([], param)
      else do 
-      (l, r) <- fromSplit c str
-      return (s:l, r)
+       (l, r) <- fromSplit c str
+       return (s:l, r)
   where 
     fromParam []      =  return Nothing
     fromParam (c':str)=

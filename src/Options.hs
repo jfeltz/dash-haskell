@@ -74,8 +74,7 @@ parser =
     <*>
     many (
      argument packageReadM (metavar "packages" <>
-     help "a list of packages to specifically build, e.g. either-1.0.1 text"
-     ))
+     help "a list of packages to specifically build, e.g. either-1.0.1 text"))
 
 versionless :: String -> C.PackageId
 versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 

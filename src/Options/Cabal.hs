@@ -1,6 +1,3 @@
--- TODO/FIXME test this step-wite on small package cases, also
--- run diagnistics to otherwise test
-
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
    
@@ -20,11 +17,9 @@ import           Data.Either
 import           Data.String.Util
 import           Control.Monad.IO.Class
 import qualified Options.CabalConstraints as OC
-import Data.Function (on)
+import           Data.Function (on)
 
--- | A mapping of cabal build target -> [C.Dependency],
---  e.g. executable:foo to list of cabal dependencies. 
--- Inv: C.Dependencies are non-duplicate
+-- | e.g. foo to list of cabal dependencies. 
 type TargetToDeps = M.Map String [C.Dependency]
 
 -- | This is a helper to make the below cleaner.
@@ -32,8 +27,8 @@ type TargetToDeps = M.Map String [C.Dependency]
 nubconcat :: (Eq a) => [[a]] -> [a]
 nubconcat = L.nub . L.concat   
 
-toDeps :: TargetToDeps -> [C.Dependency] 
-toDeps = nubconcat . M.elems
+mappedDeps :: TargetToDeps -> [C.Dependency] 
+mappedDeps = nubconcat . M.elems
 
 fromPairings :: [(String, C.CondTree a [C.Dependency] b)] -> TargetToDeps
 fromPairings = M.fromList . map (uncurry f)
@@ -55,7 +50,8 @@ fromTargetType narrowing tgts = do
       else 
         return found 
   
-  -- subset of map intersecting with used TargetToDeps -> reduced list of dependencies
+  -- subset of map intersecting with used TargetToDeps -> reduced list
+  -- of dependencies
   return $ 
     nubconcat
     . map snd
@@ -76,8 +72,8 @@ data DependencyDescription =
 
 toPkgName :: C.Dependency -> String
 toPkgName (C.Dependency (C.PackageName name) _) = name
-    
--- TODO Test for expected behavior
+
+-- TODO test
 vintersection :: C.Dependency -> C.Dependency -> Bool
 vintersection (C.Dependency _ lv) (C.Dependency _ rv) = 
  C.intersectVersionRanges lv rv == C.noVersion
@@ -89,9 +85,11 @@ nub' = L.nubBy (\l r -> toPkgName l == toPkgName r && vintersection l r)
 fromCabalFile :: 
   FilePath -> DependencyDescription -> OC.CabalConstraints -> M [C.Dependency] 
 fromCabalFile cabal desc constraints = 
-  case toPkgs pairings of
+  case toDependencies pairings of
     Left unfound ->
-      err $ preposition "failed to find TargetToDeps" "in" "cabal file" cabal unfound
+      err $ 
+        preposition 
+        "failed to find build targets" "in" "cabal file" cabal unfound
     Right found  -> 
       let 
         matched_excluded = 
@@ -130,24 +128,23 @@ fromCabalFile cabal desc constraints =
     name_sorted :: [C.Dependency] -> [C.Dependency] 
     name_sorted = L.sortBy (on compare toPkgName) 
 
-    -- | Produce a list of TargetToDeps to evaluate based off selection, i.e.
-    -- if any fst member of tuple is non-empty, the subset is returned.
-    -- if all are non-empty, all are considered 
+    -- | Produce a list of dependencies to evaluate based off selection, i.e.
+    -- if any fst member of tuple is non-empty, the intersection is returned.
     
-    toPkgs :: 
-      [(S.Set String, TargetToDeps)] -- Filtered packages for TargetToDeps 
+    toDependencies :: 
+      [(S.Set String, TargetToDeps)]
       -> Either [String] [C.Dependency] 
-    toPkgs list =
+    toDependencies list =
       nubconcat <$>
        case L.partition (S.null . fst) list of
         (non_selections, []) -> 
-          Right . map (toDeps . snd) $ non_selections  
+          Right . map (mappedDeps . snd) $ non_selections  
         (_, selections)      -> 
           case partitionEithers (L.map (uncurry fromTargetType) selections) of 
             ([],lists)   -> Right lists 
             (unfound,_) -> Left . nubconcat $ unfound 
       
-    -- | Return Pairingss of expected cabal TargetToDeps to actual cabal TargetToDeps
+    -- | Return Pairings of expected Targets to actual cabal Targets 
     pairings :: [(S.Set String, TargetToDeps)] 
     pairings = 
       lib :
@@ -159,9 +156,6 @@ fromCabalFile cabal desc constraints =
           (,) (if OC.lib constraints then S.singleton "library" else mempty )
               (maybe mempty (M.singleton "library") (library desc))
 
-toStrName :: C.Dependency -> String
-toStrName (C.Dependency (C.PackageName name) _) = name
-  
 -- | Given the defined constraints, return a list with the
 -- following properties: 
 -- 1 version overlap is not a relation for deps's taken as a set 

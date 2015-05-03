@@ -1,7 +1,7 @@
 module Options.CabalConstraints where
 import qualified Data.Set as S
 import Text.ParserCombinators.Parsec
-import Control.Applicative hiding ((<|>), many, optional)
+-- import Control.Applicative hiding ((<|>), many, optional)
 import Control.Monad
 import qualified Options.Applicative.Types as O
 
@@ -30,10 +30,10 @@ none = mempty
 type Constructor = S.Set String -> CabalConstraints
 
 excluded',benchmarks',suites',execs' :: Constructor 
-excluded' s   = none { excluded = s } 
-benchmarks' s = none { benchmarks = s } 
-execs' s      = none { execs = s } 
-suites' s     = none { suites = s } 
+excluded'    s = none { excluded   = s } 
+benchmarks'  s = none { benchmarks = s } 
+execs'       s = none { execs      = s } 
+suites'      s = none { suites     = s } 
 
 -- | Parser for the cabal constraints option.
 -- Note: I don't think this can be simplified with sepBy since the 
@@ -59,9 +59,9 @@ constraints Nothing =
     binding = do 
       ctor <- choice $ map try [ 
         string "executables" >> return execs',
-        string "suites" >> return suites',
-        string "benchmarks" >> return benchmarks',
-        string "excluded" >> return excluded'
+        string "suites"      >> return suites',
+        string "benchmarks"  >> return benchmarks',
+        string "excluded"    >> return excluded'
         ]
       void . char $ '=' 
       return ctor
