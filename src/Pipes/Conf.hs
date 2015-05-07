@@ -7,6 +7,7 @@ import qualified Data.List as L
 import           Data.Maybe
 import           Data.String.Util
 import           Distribution.InstalledPackageInfo as DIP
+import           Distribution.Text (display)
 import qualified Filesystem.Path.CurrentOS as P
 import qualified Module as Ghc
 import           Package.Conf
@@ -43,7 +44,7 @@ fromParseResults conf (ParseOk cabalWarnings fields)
       Conf 
         -- We're not using Cabal's type information beyond just
         -- extracting package data. Ghc types are used for the rest.
-        (Ghc.mkPackageId . sourcePackageId $ fields)
+        (Ghc.stringToPackageKey . display . sourcePackageId $ fields)
         -- TODO Respect multiple interfaces, however 
         -- this is not the common consensus for use of haddock interfaces. 
         (P.decodeString (head $ haddockInterfaces fields))
@@ -71,6 +72,6 @@ pipe_Conf = forever $ do
   else 
     lift $
       do msg "\n"
-         warning $ "failed to process: " ++ Ghc.packageIdString (pkg c)
+         warning $ "failed to process: " ++ Ghc.packageKeyString (pkg c)
          warning $ preposition "path errors" "in" "pkg conf file" pkg_db_conf errors
          msg "\n" 
