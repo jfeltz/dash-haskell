@@ -122,13 +122,13 @@ executable dash-haskell
                        Package.Conf
 
   build-depends:       Cabal                >= 1.18
-                     , base                 >= 4.7 && <4.8
+                     , base                 >= 4.7 && < 4.9
                      , bytestring           >= 0.10.0.1
                      , containers           >= 0.5.5.1
                      , direct-sqlite >= 2.3.13
                      , directory            >= 1.2.1.0
                      , either               >= 4.3
-                     , ghc                  >= 7.8.3 && < 7.10.1
+                     , ghc                  >= 7.10.1
                      , mtl                  >= 2.1.3.1
                      , optparse-applicative >= 0.11.0 && <= 0.11.1
                      , pipes                >= 4.1.0
