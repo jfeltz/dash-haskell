@@ -1,6 +1,6 @@
 dash-haskell
 ============
-**local and approximate package doc access for your Haskell project dependencies**
+**local and approximate package docs for your Haskell project dependencies**
 
   **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
@@ -137,10 +137,13 @@ or
 
 Package Resolution
 ==================
-When dependency sourcing from a cabal file, dash-haskell does not (yet) select versioned packages from the build-dependency version bounds, only the package names. As a general rule, try to **be version specific** when providing package arguments, unless you're judicious about which packages are stored in your *cabal sandbox* or *ghc package db*. There is a lot of hidden behavior that goes into how dash-haskell resolves packages, 
-for example, consider the hypothetical package arguments:
+As a general rule, try to **be version specific** when providing
+package arguments, unless you're judicious about which packages are
+stored in your *cabal sandbox* or *ghc package db*. There is a lot of
+hidden behavior that goes into how dash-haskell resolves packages, for
+example, consider the hypothetical package arguments:
 ```
-$ dash-haskell either parsec-1.2 parsec
+either parsec-1.2 parsec
 ```
 This chooses by default:
 
@@ -215,9 +218,13 @@ Features slated for V2
 
 Contributors
 ============
-Hirotomo Moriwaki <philopon.dependence@gmail.com>
+Hirotomo Moriwaki : <philopon.dependence@gmail.com>
 
 The major instigator of this project was Hirotomo Moriwaki's [haddocset](https://github.com/philopon/haddocset), with much of the early implementation of *dash-haskell* influenced by that code-base.
+
+Rudi Grinberg : [github](http://github.com/rgrinberg)
+
+For patches, testing, and helping maintain compatibility of ```dash-haskell-1.0.x.x``` with ghc changes
 
 Author & Maintainer
 ===================
