@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Pipes.FileSystem where
+module Pipe.FileSystem where
 import           Control.Monad
 import           Control.Monad.M
 import qualified Data.ByteString as BS
@@ -13,7 +13,7 @@ import           Filesystem as F
 import           Filesystem.Path.CurrentOS ((</>))
 import qualified Filesystem.Path.CurrentOS as P
 import           Package.Conf
-import           Pipes
+import           Pipe
 import           System.Directory ( doesDirectoryExist, getDirectoryContents )
 import qualified System.Directory as D
 import           Text.HTML.TagSoup

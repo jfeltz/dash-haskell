@@ -1,4 +1,4 @@
-module Pipes.Conf where
+module Pipe.Conf where
 import           Control.Monad
 import           Control.Monad.M
 import           Control.Monad.Trans.Either
@@ -8,7 +8,7 @@ import           Data.String.Util
 import           Distribution.InstalledPackageInfo as DIP
 import qualified Filesystem.Path.CurrentOS as P
 import           Package.Conf
-import           Pipes
+import           Pipe
 import qualified System.Directory as D
        
 confError :: FilePath -> String -> M r
@@ -58,7 +58,8 @@ diagnosePaths conf = do
 
 pipe_Conf :: PipeM FilePath Conf ()
 pipe_Conf = forever $ do
-  pkg_db_conf <- await
+  pkg_db_conf   <- await
+
   -- Retrieve the package conf file from the package db
   parse_results <- liftIO $
     DIP.parseInstalledPackageInfo <$> Prelude.readFile pkg_db_conf

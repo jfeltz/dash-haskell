@@ -1,6 +1,6 @@
 -- TODO ensure this handles hidden cases
 {-# LANGUAGE OverloadedStrings #-}
-module Pipes.Db (pipe_ConfFp) where
+module Pipe.Db (pipe_ConfFp) where
 
 import           Control.Monad
 import           Control.Monad.M
@@ -13,107 +13,47 @@ import qualified Distribution.Package as C
 import           Filesystem
 import qualified Filesystem.Path.CurrentOS as P
 
-import           Options.DbProvider
-import           Package (unversioned)
-import           Pipes
+import           Options.DbStack
+import           Pipe
                  
 -- imports necessary for working with Cabal package db tools 
 
 import Distribution.Package
 
-import Distribution.Simple.Program
-import Distribution.Simple.Program.Db
-import Distribution.Simple.PackageIndex
-       
--- | A totally arbitrary program DB to pass to cabal.
--- This is just necessary to call ghc-pkg.
--- TODO
---  I'm not going to support variations and detection 
---  of 'ghc-pkg', analogous to how cabal calls it right now. 
---  If you really want that, then please submit a branch or PR. 
---    -JPF
+import Distribution.Simple.Program      as C
+import Distribution.Simple.Program.Db   as CD
+import Distribution.Simple.PackageIndex as CI 
+import Distribution.Simple.Compiler     as CC
+import Distribution.Verbosity           as CVB
+import Distribution.Version             as CVS
 
-fromIndex :: 
-   InstalledPackageIndex 
-   -> State [C.Dependency] (Maybe (String, PackageIdentifier)) 
-fromIndex index = undefined 
+f :: DbStack -> PackageDBStack
+f (Sandbox   _) = [SpecificPackageDB] 
+f (Ghc       _) = [UserPackageDB, GlobalPackageDB] 
+f (Single path) = [SpecificPackageDB path] 
 
-defaultGhcProgDb :: ProgramDb
-defaultGhcProgDb = addKnownProgram ghcPkgProgram emptyProgramDb
+toIndex :: IO InstalledPackageIndex 
+toIndex = do
+ result <- 
+   -- FIXME anyVersion is probably wrong, as the functional dep. 
+   -- for operated packages is as follows: 
+   -- haddock-api -> compiled ghc version -> ghc-pkg version -> ghc package 
 
-isPackage :: String -> Bool
-isPackage str = str /= "    (no packages)" && "   " `L.isPrefixOf` str 
+   C.lookupProgramVersion normal ghcPkgProgram anyVersion 
+    $ addKnownProgram ghcPkgProgram emptyProgramDb
+ case result of 
+   Left  err                                -> undefined 
+   Right (cfd_program, version, program_db) -> undefined
+ 
+-- fromArgs :: String -> ConfiguredProgram -> ConfigureProgram
+-- fromArgs []   cfd_program = cfd_program
+-- fromArgs args cfd_program = 
 
--- | If parsed matches a member of the set by version first, return,
--- otherwise return unversioned match.
-toPkgMatch :: String -> State (S.Set String) (Maybe (String, PackageIdentifier)) 
-toPkgMatch parsed = do
-  unassigned <- get 
-  if S.member parsed unassigned -- found versioned 
-    then fromFound parsed
-  else 
-    let parsed' = unversioned parsed in
-      if S.member parsed' unassigned 
-        then fromFound parsed'
-        else return Nothing 
-  where
-    fromFound :: String -> State (S.Set String) (Maybe (String, PackageIdentifier))
-    fromFound p = do
-      modify (S.delete p)
-      return . Just $ (p, read parsed)
+-- fromIndex :: 
+--    InstalledPackageIndex 
+--    -> State [C.Dependency] (Maybe (String, PackageIdentifier)) 
+-- fromIndex index = undefined 
 
--- | A crude parser that extracts db -> package set mappings based
--- on whitespace indentation 
--- fromOutput :: 
---   [String] -- output of ghc-pkg or ghc-pkg like listing
---   -> S.Set String -- set of packages not yet associated to a db 
---   -> [(FilePath, [(String, PackageIdentifier)])]
---   -> M [(FilePath, [(String, PackageIdentifier)])]
--- fromOutput [] _ assigned = 
---   return assigned 
--- fromOutput (l:rest) unassoc assoc = 
---   if S.null unassoc then -- we're done 
---     return assoc
---   else
---     case assoc of 
---       []     -> 
---         if isPath l then
---           fromOutput rest unassoc [(toPath l, [])] 
---         else
---           err "parse error on package list output, check program used" 
---       ((db, members):dbs) ->
---         uncurry (fromOutput rest) $ 
---           if isPath l then -- it's another db
---             (,) unassoc ((toPath l, []):assoc)
---           else -- it could be a package 
---             if isPackage l then
---               let 
---                 (r, unassoc') =
---                   runState (toPkgMatch (unhide $ drop 4 l)) unassoc
---               in (,) unassoc' $ 
---                    maybe 
---                      assoc -- no change 
---                      (\p -> (db, p : members) : dbs) -- at to members 
---                      r
---             else
---               (unassoc, assoc)
---   where
---     unhide :: String -> String
---     unhide ('(':str) = L.take (L.length str - 1) str 
---     unhide s         = s 
-
---     -- | remove last ':' and junk 
---     -- Interestingly, when running cabal and ghc proc, its stdout actually 
---     -- appends colons to paths, instead of what appears on console.
---     -- So we're stripping them blindly for now.
---     toPath :: String -> String
---     toPath s = L.take (L.length s - 1) s
-
---     isPath :: String -> Bool
---     isPath [] = False
---     isPath s  = head s `L.notElem`  "\n\r\t "
-
--- FIXME 
 toMapping :: 
   String ->
   [String] ->
@@ -134,7 +74,7 @@ toMapping cmd args deps = undefined
 
 -- | Weakest pre-condition: dependency list is version disjoint.
 fromProvider :: 
-  DbProvider -> [C.Dependency] -> M [(FilePath, [(String, PackageIdentifier)])] 
+  DbStack -> [C.Dependency] -> M [(FilePath, [(String, PackageIdentifier)])] 
   -- ^ (database dir, [package string -> packageId]) 
 fromProvider prov pkgs = do
   case prov of 
@@ -142,7 +82,7 @@ fromProvider prov pkgs = do
     (CabalSandbox _) -> toMapping cmd extra_args pkgs
     (Db fp)          -> fromProvider (Ghc . Just $ "--package-db=" ++ fp) pkgs
   where
-    (cmd , extra_args) = toExec prov
+    (cmd , extra_args) = undefined
 
 isConf :: PackageIdentifier -> P.FilePath -> Bool 
 isConf p f = P.hasExtension f "conf" && pkgRelated p f
@@ -180,7 +120,7 @@ pkgRelated p =
 
 -- | Pre-condition:
 -- Awaited dependencies are version disjoint (by Cabal VersionRange type)
-pipe_ConfFp :: DbProvider -> PipeM [C.Dependency] FilePath ()
+pipe_ConfFp :: DbStack -> PipeM [C.Dependency] FilePath ()
 pipe_ConfFp prov = do 
   dependencies <- await 
   if L.null dependencies 
@@ -189,7 +129,7 @@ pipe_ConfFp prov = do
     else do
       lift $ do
         msg "db provider:"
-        indentM 2 $ msg . show $ prov 
+        -- indentM 2 $ msg . show $ prov 
         msg "\n"
       
       pairings <- lift $ fromProvider prov dependencies

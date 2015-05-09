@@ -7,11 +7,11 @@ import qualified Options.Applicative.Types as O
 
 data CabalConstraints = 
   CabalConstraints {
-    lib :: Bool,
-    execs :: S.Set String, -- The execs to limit to
-    suites :: S.Set String, -- The suites to limit to
+    lib        :: Bool,
+    execs      :: S.Set String, -- The execs to limit to
+    suites     :: S.Set String, -- The suites to limit to
     benchmarks :: S.Set String, -- The benchmarks to limit to
-    excluded :: S.Set String -- Packages to exclude
+    excluded   :: S.Set String -- Packages to exclude
   } deriving (Show, Eq)
 
 instance Monoid CabalConstraints where 
@@ -19,10 +19,10 @@ instance Monoid CabalConstraints where
   mappend l r = 
     CabalConstraints 
       (lib r || lib l)  -- This just biases to True 
-      (mappend (execs l) (execs r))
-      (mappend (suites l) (suites r))
-      (mappend (benchmarks l) (benchmarks r))
-      (mappend (excluded l) (excluded r))
+      (mappend (execs l      ) (execs r)     )
+      (mappend (suites l     ) (suites r)    )
+      (mappend (benchmarks l ) (benchmarks r))
+      (mappend (excluded l   ) (excluded r)  )
 
 none :: CabalConstraints 
 none = mempty 

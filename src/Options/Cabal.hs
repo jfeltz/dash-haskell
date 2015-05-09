@@ -36,7 +36,7 @@ fromPairings = M.fromList . map (uncurry f)
 
 -- | Return the packages to use from the target type, or fail with
 -- unfound TargetToDeps.
-fromTargetType :: S.Set String -> TargetToDeps -> Either [String] [C.Dependency] 
+fromTargetType :: S.Set String -> TargetToDeps -> Either [String] [C.Dependency]
 fromTargetType narrowing tgts = do
   used_TargetToDeps <-
     -- Return a list of used TargetToDeps 

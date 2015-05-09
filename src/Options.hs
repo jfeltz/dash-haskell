@@ -16,13 +16,13 @@ import           Options.Applicative.Builder
 import           Options.Applicative.Common
 import           Options.Cabal
 import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
-import           Options.DbProvider
+import           Options.DbStack
 
 import           PackageId
-import           Pipes
+import           Pipe
 
 data Options = Options { 
-  dbprovider :: DbProvider,
+  dbprovider :: DbStack,
   outputDir  :: FilePath,
   quiet    :: Bool,
   cabalFile :: Maybe FilePath,

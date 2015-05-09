@@ -1,25 +1,22 @@
-module Options.DbProvider where
+module Options.DbStack where
 import           Control.Monad
 import qualified Data.List as L
-import           Data.Maybe
+
 import           Options.Applicative.Types
 
-data DbProvider = 
-  CabalSandbox (Maybe String)
-  | Ghc (Maybe String) 
-  | Db FilePath  
+data DbStack = Sandbox (Maybe String) | Ghc (Maybe String) | Single FilePath
 
-instance (Show DbProvider) where
-  show dbp = 
-    let (cmd, args) = toExec dbp in 
-      L.intercalate "\n"
-       ["lookup strategy: " ++  desc, "cmd: " ++ cmd, "args: " ++ unwords args] 
-    where
-      desc = 
-        case dbp of 
-          CabalSandbox _ -> "cabal sandbox db index" 
-          Ghc          _ -> "ghc db index" 
-          Db           _ -> "ghc db index with directory narrowing" 
+-- instance (Show DbStack) where
+--   show dbp = 
+--     let (cmd, args) = toExec dbp in 
+--       L.intercalate "\n"
+--        ["lookup strategy: " ++  desc, "cmd: " ++ cmd, "args: " ++ unwords args] 
+--     where
+--       desc = 
+--         case dbp of 
+--           CabalSandbox _ -> "cabal sandbox db index" 
+--           Ghc          _ -> "ghc db index" 
+--           Db           _ -> "ghc db index with directory narrowing" 
 
 fromSplit :: Char -> String -> ReadM (String, Maybe String)
 fromSplit c opt = 
@@ -40,25 +37,25 @@ fromSplit c opt =
       else
         Just . maybe [c'] (c':) <$> fromParam str
 
-toExec :: DbProvider -> (String, [String])
-toExec (CabalSandbox args) = 
-  (,) "cabal" $ ["sandbox", "hc-pkg", "list"] ++ maybeToList args
-toExec (Ghc args)          = 
-  (,) "ghc-pkg" $ "list" : maybeToList args
-toExec (Db fp)             = 
-  (,) "ghc-pkg" ("list":["--package-db=" ++ fp]) 
+-- toExec :: DbStack -> (String, [String])
+-- toExec (CabalSandbox args) =
+--   (,) "cabal" $ ["sandbox", "hc-pkg", "list"] ++ maybeToList args
+-- toExec (Ghc args)          = 
+--   (,) "ghc-pkg" $ "list" : maybeToList args
+-- toExec (Db fp)             = 
+--   (,) "ghc-pkg" ("list":["--package-db=" ++ fp]) 
 
-toProvider :: ReadM DbProvider
+toProvider :: ReadM DbStack
 toProvider = do
   expr <- readerAsk
   (prov, arg) <- fromSplit ',' expr
   join $ constructor prov <*> pure arg
   where 
-    constructor :: String -> ReadM (Maybe String -> ReadM DbProvider) 
+    constructor :: String -> ReadM (Maybe String -> ReadM DbStack) 
     constructor prov =
      maybe (readerError "invalid db provider") return f
      where 
-      f :: Maybe (Maybe String -> ReadM DbProvider)
+      f :: Maybe (Maybe String -> ReadM DbStack)
       f = 
         -- return a constructor given an arg
         L.lookup prov

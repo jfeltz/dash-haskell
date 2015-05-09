@@ -103,9 +103,9 @@ description:
 
 executable dash-haskell
   main-is:             Main.hs
-  other-modules:       Pipes.Db
-                       Pipes.Conf
-                       Pipes.FileSystem
+  other-modules:       Pipe.Db
+                       Pipe.Conf
+                       Pipe.FileSystem
                        Options
                        Package
                        Control.Monad.M 
@@ -115,7 +115,7 @@ executable dash-haskell
                        Options.CabalConstraints
                        Options.Documentation
                        Options.Cabal
-                       Options.DbProvider
+                       Options.DbStack
                        Haddock.Sqlite
                        Haddock.Artifact
                        PackageId
@@ -143,7 +143,7 @@ executable dash-haskell
                      , parsec               >= 3.1.5
                      , haddock-api          >= 2.15.0
   ghc-options:         -Wall -rtsopts
-  hs-source-dirs:      src
+  hs-source-dirs:      src, cabal-install/src
   default-language:    Haskell2010
 
 source-repository head

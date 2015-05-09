@@ -6,7 +6,7 @@ import Control.Monad
 import qualified Data.List as L
 
 import System.Exit
-import Pipes
+import Pipe
 
 import Data.String.Indent
 

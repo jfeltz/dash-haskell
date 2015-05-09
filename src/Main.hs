@@ -1,9 +1,9 @@
 import qualified Filesystem.Path.CurrentOS as P
 import           Control.Monad.M
-import           Pipes
-import           Pipes.FileSystem
-import           Pipes.Conf
-import           Pipes.Db
+import           Pipe
+import           Pipe.FileSystem
+import           Pipe.Conf
+import           Pipe.Db
 import           Options.Applicative
 import           Options.Documentation
 import           Options
@@ -26,9 +26,9 @@ main = do
 
       runM (newEnv (not . quiet $ options)) . runEffect $
        cons_writeFiles (P.decodeString $ outputDir options) -- writes converted html, haddock, and sql db
-       <-< pipe_Conf              -- yields vetted package configurations
+       <-< pipe_Conf                         -- yields vetted package configurations
        <-< pipe_ConfFp (dbprovider options)  -- yields GHC package config files
-       <-< prod_Dependencies options -- yields packages from options
+       <-< prod_Dependencies options         -- yields packages from options
     (_, rest) -> toHelp docs rest
   
   where 
