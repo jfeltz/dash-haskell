@@ -22,7 +22,7 @@ isPackage str = str /= "    (no packages)" && "   " `L.isPrefixOf` str
 
 -- | If parsed matches a member of the set by version first, return,
 -- otherwise return unversioned match.
-toPkgMatch :: String -> State (S.Set String) (Maybe (String, Ghc.PackageId)) 
+toPkgMatch :: String -> State (S.Set String) (Maybe (String, Ghc.PackageKey))
 toPkgMatch parsed = do
   unassigned <- get 
   if S.member parsed unassigned -- found versioned 
@@ -33,18 +33,18 @@ toPkgMatch parsed = do
         then fromFound parsed'
         else return Nothing 
   where
-    fromFound :: String -> State (S.Set String) (Maybe (String, Ghc.PackageId))
+    fromFound :: String -> State (S.Set String) (Maybe (String, Ghc.PackageKey))
     fromFound p = do
       modify (S.delete p)
-      return . Just $ (p, Ghc.stringToPackageId parsed)
+      return . Just $ (p, Ghc.stringToPackageKey parsed)
 
 -- | A crude parser that extracts db -> package set relations based
 -- on whitespace indentation 
 accumPaths :: 
   [String] -- output of ghc-pkg or ghc-pkg like listing
   -> S.Set String -- set of packages not yet associated to a db 
-  -> [(FilePath, [(String, Ghc.PackageId)])]
-  -> M [(FilePath, [(String, Ghc.PackageId)])]
+  -> [(FilePath, [(String, Ghc.PackageKey)])]
+  -> M [(FilePath, [(String, Ghc.PackageKey)])]
 accumPaths [] _ assigned = 
   return assigned 
 accumPaths (l:rest) unassigned assigned = 
@@ -87,9 +87,9 @@ accumPaths (l:rest) unassigned assigned =
 
     isPath :: String -> Bool
     isPath [] = False
-    isPath s  = head s `L.notElem`  "\n\r\t "
+    isPath s  = head s `L.notElem`  ("\n\r\t " :: String)
 
-toMapping :: String -> [String] -> S.Set String -> M [(FilePath, [(String, Ghc.PackageId)])]
+toMapping :: String -> [String] -> S.Set String -> M [(FilePath, [(String, Ghc.PackageKey)])]
 toMapping cmd args pkgs = do
   res <- liftIO $ readProcessWithExitCode cmd args []
   case res of 
@@ -101,7 +101,7 @@ toMapping cmd args pkgs = do
       accumPaths (L.lines out) pkgs []
 
 -- | This returns a non-empty list of package db's, or failure.
-fromProvider :: DbProvider -> S.Set String -> M [(FilePath, [(String, Ghc.PackageId)])]
+fromProvider :: DbProvider -> S.Set String -> M [(FilePath, [(String, Ghc.PackageKey)])]
 fromProvider prov pkgs = do
   case prov of 
     (Ghc _)          -> toMapping cmd extra_args pkgs 
@@ -110,10 +110,10 @@ fromProvider prov pkgs = do
   where
     (cmd , extra_args) = toExec prov
 
-isConf :: Ghc.PackageId -> P.FilePath -> Bool 
+isConf :: Ghc.PackageKey -> P.FilePath -> Bool
 isConf p f = P.hasExtension f "conf" && pkgRelated p f
   
-findConf :: Ghc.PackageId -> State (S.Set P.FilePath) (Either Ghc.PackageId P.FilePath)
+findConf :: Ghc.PackageKey -> State (S.Set P.FilePath) (Either Ghc.PackageKey P.FilePath)
 findConf package = do
   files <- get 
   let matching = S.filter (isConf package) files
@@ -126,7 +126,7 @@ findConf package = do
   
 -- | Return a list of package configurations for the given
 -- db and handled packages
-fromPair :: FilePath -> [Ghc.PackageId] -> M [FilePath]
+fromPair :: FilePath -> [Ghc.PackageKey] -> M [FilePath]
 fromPair _ []      =
   return [] 
 fromPair db members = do 
@@ -134,12 +134,12 @@ fromPair db members = do
   let (remainder, confs') = partitionEithers $ evalState (mapM findConf members) confs 
   unless (L.null remainder) . warning $ 
     "The following packages were not found in the pkg db dir: \n" ++  
-    L.intercalate "\n" (map Ghc.packageIdString remainder)
+    L.intercalate "\n" (map Ghc.packageKeyString remainder)
   mapM (return . P.encodeString) confs'
 
-pkgRelated :: Ghc.PackageId -> P.FilePath -> Bool
+pkgRelated :: Ghc.PackageKey -> P.FilePath -> Bool
 pkgRelated p = 
-  T.isPrefixOf (T.pack . Ghc.packageIdString $ p) 
+  T.isPrefixOf (T.pack . Ghc.packageKeyString $ p) 
     . T.pack 
     . P.encodeString 
     . P.filename
@@ -169,7 +169,7 @@ pipe_ConfFp prov = do
       else -- yield over each returned file,
            --  types are added to make this _much_ easier to understand  
         let 
-          mapped :: (FilePath, [(String, Ghc.PackageId)]) -> M [FilePath]
+          mapped :: (FilePath, [(String, Ghc.PackageKey)]) -> M [FilePath]
           mapped = uncurry fromPair . (\(db, members) -> (db, map snd members))
         in 
           mapM_ yield =<< lift (L.concat <$> mapM mapped pairings)

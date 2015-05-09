@@ -20,7 +20,7 @@ parseError :: String -> P.FilePath -> M r
 parseError e p = 
   err $ preposition "parser error" "in" "haddock interface" (P.encodeString p) [e]
 
-fromInterfaces :: Ghc.PackageId -> [InstalledInterface] -> [Artifact] 
+fromInterfaces :: Ghc.PackageKey -> [InstalledInterface] -> [Artifact]
 fromInterfaces _   []       = []  
 fromInterfaces pkg (i:rest) =
    let moduleName = instMod i in
@@ -34,7 +34,7 @@ fromInterfaces pkg (i:rest) =
      else
        fromInterfaces pkg rest 
    
-toArtifacts :: Ghc.PackageId -> P.FilePath -> M [Artifact]
+toArtifacts :: Ghc.PackageKey -> P.FilePath -> M [Artifact]
 toArtifacts pkg haddock' = do 
   interface_file <- liftIO $ readInterfaceFile freshNameCache (P.encodeString haddock')
   case interface_file of
