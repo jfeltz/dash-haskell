@@ -7,7 +7,7 @@ license:             LGPL-3
 license-file:        LICENSE
 author:              John P. Feltz
 maintainer:          jfeltz@gmail.com
-copyright:           (c) 2014 John P. Feltz 
+copyright:           (c) 2014, 2015 John P. Feltz 
 category:            Documentation
 build-type:          Simple
 cabal-version:       >= 1.22
