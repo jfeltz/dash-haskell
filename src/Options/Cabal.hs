@@ -5,7 +5,6 @@ module Options.Cabal where
 import qualified Data.Set as S
 import           Control.Monad.M
 
-
 import qualified Data.Map as M
 import qualified Data.List as L
 import           Control.Monad
