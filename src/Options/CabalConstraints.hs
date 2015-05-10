@@ -68,7 +68,7 @@ constraints Nothing =
 constraints (Just ctor) = do
   -- parse the next value
   v <- value  
-  -- the next is either eol, or a deliminated binding/value 
+  -- the next is either buf end, or a deliminated binding/value 
   c <- choice [
     eof >> return none,
     try (char ',' >> constraints Nothing), -- binding pre-empts value
