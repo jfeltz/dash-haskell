@@ -68,11 +68,12 @@ providerTopic = Topic "package database provider" $
     , "Note, only one provider at once is supported at this time.\n"
     , "pairings for <var,args>:"
     , " var                                        args "
-    , "-----------------------------------------   -------------------------------"
-    , " cabal : use cabal sandbox package db stack flag string to pass to cabal"
-    , " ghc   : use ghc's package db stack         flag string to pass to ghc"
-    , " dir   : use package db dir directory       the package db directory"
-    
+    , "-----------------------------------------   ----------------------------"
+    , " cabal : use sandbox topped db stack         non-default cabal sandbox"
+    , "                                             config path"
+    , " ghc   : use ghc's package db stack          additional flag string to"
+    , "                                             pass to ghc-pkg"
+    , " dir   : use package db dir directory        the package db directory"
     ]
 
 outputTopic= Topic "output" $ 
