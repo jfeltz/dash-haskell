@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 
 module Options where
+import           Pipes
 
 import           Control.Applicative
 import           Control.Monad.M
@@ -19,15 +20,14 @@ import           Options.CabalConstraints (toConstraints, none, CabalConstraints
 import           Options.DbStack
 
 import           PackageId
-import           Pipe
 
 data Options = Options { 
-  dbprovider :: DbStack,
-  outputDir  :: FilePath,
-  quiet    :: Bool,
-  cabalFile :: Maybe FilePath,
+  dbprovider       :: DbStack,
+  outputDir        :: FilePath,
+  quiet            :: Bool,
+  cabalFile        :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
-  packages :: [C.Dependency]
+  packages         :: [C.Dependency]
 } deriving Show
 
 packageReadM :: Text a => ReadM a
@@ -42,12 +42,12 @@ packageReadM = do
 parser :: Parser Options
 parser = 
   Options <$> 
-    option toProvider 
-      (long "dbprovider" 
-      <> short 'p'
-      <> metavar "<provider,args>"
+    option toStack 
+      (long "dbstack" 
+      <> short 's'
+      <> metavar "<stack-type,args>"
       <> value (CabalSandbox Nothing) 
-      <> help "a ghc package db provider: cabal|ghc|dir\n")
+      <> help "a ghc package db stack: cabal|ghc|dir\n")
     <*>
     strOption (
      long "output" 
