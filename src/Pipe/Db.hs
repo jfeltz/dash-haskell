@@ -1,6 +1,7 @@
 -- TODO ensure this handles hidden cases
 {-# LANGUAGE OverloadedStrings #-}
 module Pipe.Db (pipe_ConfFp) where
+import           Pipes
 
 import           Control.Monad
 import           Control.Monad.M
@@ -14,12 +15,10 @@ import           Filesystem
 import qualified Filesystem.Path.CurrentOS as P
 
 import           Options.DbStack
-import           Pipe
                  
 -- imports necessary for working with Cabal package db tools 
 
 import Distribution.Package
-
 import Distribution.Simple.Program      as C
 import Distribution.Simple.Program.Db   as CD
 import Distribution.Simple.PackageIndex as CI 
@@ -27,10 +26,10 @@ import Distribution.Simple.Compiler     as CC
 import Distribution.Verbosity           as CVB
 import Distribution.Version             as CVS
 
-f :: DbStack -> PackageDBStack
-f (Sandbox   _) = [SpecificPackageDB] 
-f (Ghc       _) = [UserPackageDB, GlobalPackageDB] 
-f (Single path) = [SpecificPackageDB path] 
+-- f :: DbStack -> PackageDBStack
+-- f (Sandbox   _) = [SpecificPackageDB] 
+-- f (Ghc       _) = [UserPackageDB, GlobalPackageDB] 
+-- f (Single path) = [SpecificPackageDB path] 
 
 toIndex :: IO InstalledPackageIndex 
 toIndex = do
