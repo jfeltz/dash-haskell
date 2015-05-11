@@ -7,17 +7,38 @@ import qualified Data.List as L
 import           Text.ParserCombinators.Parsec
 
 
--- import           Distribution.Package
--- import           Distribution.ParseUtils as CP
--- import           Distribution.Simple.Compiler as CC
--- import           Distribution.Simple.PackageIndex as CI
--- import           Distribution.Simple.Program as C
--- import           Distribution.Simple.Program.Db as CD
--- import           Distribution.Verbosity as CVB
--- import           Distribution.Version as CVS
+import           Distribution.Package
+import           Distribution.ParseUtils as CP
+import           Distribution.Simple.Compiler as CC
+import           Distribution.Simple.PackageIndex as CI
+import           Distribution.Simple.Program as C
+import           Distribution.Simple.Program.Db as CD
+import           Distribution.Verbosity as CVB
+import           Distribution.Version as CVS
+
 import           Options.Applicative.Types (ReadM, readerError, readerAsk)
 
-data DbStack = Sandbox (Maybe String) | Ghc (Maybe String) | Single FilePath
+-- data GhcPkg = GhcPkg { args :: [String] , stack :: DbStack }
+-- data DbStack = Single FilePath | Ghc (Maybe String) 
+data Db     = 
+  Sandbox (Maybe FilePath) 
+  | Global 
+  | User 
+  | Path FilePath deriving (Ord, Eq)
+
+defaultStack :: [Db] 
+defaultStack = [Sandbox Nothing, Global, User]
+
+-- TODO 
+-- create args to handle this, e.g. 
+--   --sandbox,s (automatically on if sourcing from cabal file) 
+--   --global,g
+--   --user,u
+--   --db,db
+     
+-- TODO 
+-- convert default stack to Set, and  
+
 
 -- instance (Show DbStack) where
 --   show dbp = 
@@ -50,7 +71,7 @@ fromSplit c opt =
         Just . maybe [c'] (c':) <$> fromParam str
 
 -- toExec :: DbStack -> (String, [String])
--- toExec (CabalSandbox args) =
+-- toExec (Sandbox args) =
 --   (,) "cabal" $ ["sandbox", "hc-pkg", "list"] ++ maybeToList args
 -- toExec (Ghc args)          = 
 --   (,) "ghc-pkg" $ "list" : maybeToList args
@@ -71,14 +92,8 @@ parsedDb :: String -> M String
 parsedDb path = do
   buf <- liftIO $ readFile path
   case runParser (singleField "package-db") () path buf of
-    Left  _   -> undefined 
-    Right db  -> return db 
-
--- searchedPackageDb :: Parser String
--- searchedPackageDb = 
---   choice packageDb 
-
-  -- Parse from current non space to eol, trim and return
+    Left  str -> err . show $ str
+    Right db      -> return db 
 
 toStack :: ReadM DbStack
 toStack = do
@@ -93,10 +108,10 @@ toStack = do
       f :: Maybe (Maybe String -> ReadM DbStack)
       f = L.lookup prov-- produce a constructor given an arg
             [("ghc"   , return . Ghc),
-              ("cabal" , return . Sandbox),
-              ("dir"   , 
-                maybe (readerError "requires directory path") (return . Single))
-              ]
+             ("cabal" , return . Sandbox),
+             ("dir"   , 
+               maybe (readerError "requires directory path") (return . Single))
+            ]
 
 sandboxConfig :: String
 sandboxConfig = "cabal.sandbox.config" 
@@ -115,3 +130,13 @@ sandboxConfig = "cabal.sandbox.config"
 -- f (Ghc       _)     = return [UserPackageDB, GlobalPackageDB] 
 -- f (Single path)     = return [SpecificPackageDB path] 
 
+
+-- fromStack :: 
+--   [C.Dependency] -- ^ dependencies to resolve to those provided by db
+--   -> DbStack      -- ^ stack of databases
+--   -> M [(FilePath, [(String, PackageIdentifier)])] 
+-- fromStack stack pkgs =
+-- fromStack :: DbStack -> M PackageDB 
+-- fromStack (Sandbox        args) =  
+-- fromStack (Ghc            args) =  
+-- fromStack (B db_path args) = return $ SpecificPackageDb db_path 
