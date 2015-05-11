@@ -68,18 +68,14 @@ toMapping cmd args deps = undefined
   --   (ExitSuccess, out, _) ->
   --     fromOutput (L.lines out) pkgs []
 
--- TODO 
--- select between cabal infrastructure res. and ghc package dir resolution 
-
--- | Weakest pre-condition: dependency list is version disjoint.
 fromProvider :: 
   DbStack -> [C.Dependency] -> M [(FilePath, [(String, PackageIdentifier)])] 
   -- ^ (database dir, [package string -> packageId]) 
-fromProvider prov pkgs = do
+fromProvider prov pkgs =
   case prov of 
-    (Ghc _)          -> toMapping cmd extra_args pkgs 
-    (CabalSandbox _) -> toMapping cmd extra_args pkgs
-    (Db fp)          -> fromProvider (Ghc . Just $ "--package-db=" ++ fp) pkgs
+    (Ghc     _) -> toMapping cmd extra_args pkgs
+    (Sandbox _) -> toMapping cmd extra_args pkgs
+    (Single fp) -> fromProvider (Ghc . Just $ "--package-db=" ++ fp) pkgs
   where
     (cmd , extra_args) = undefined
 
@@ -117,10 +113,8 @@ pkgRelated p =
     . P.encodeString 
     . P.filename
 
--- | Pre-condition:
--- Awaited dependencies are version disjoint (by Cabal VersionRange type)
 pipe_ConfFp :: DbStack -> PipeM [C.Dependency] FilePath ()
-pipe_ConfFp prov = do 
+pipe_ConfFp stack = do 
   dependencies <- await 
   if L.null dependencies 
     then  
