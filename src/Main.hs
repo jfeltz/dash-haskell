@@ -1,7 +1,6 @@
+-- import           Control.Monad.M
 
-import           Control.Monad.M
-
-import           Pipes
+-- import           Pipes
 -- import           Pipe.FileSystem
 -- import           Pipe.Conf
 -- import           Pipe.Db
