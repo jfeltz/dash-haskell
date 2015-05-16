@@ -1,7 +1,7 @@
 module Options.Db where
-import qualified Data.Set as S
+-- import qualified Data.Set as S
 import           Text.ParserCombinators.Parsec
-import           Control.Monad
+-- import           Control.Monad
 import qualified Options.Applicative.Types as O
 import           Db
 import qualified Data.List as L
