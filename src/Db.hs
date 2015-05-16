@@ -3,30 +3,19 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.M
 import           FilePath
--- import qualified Data.List as L
 import           Text.ParserCombinators.Parsec
--- import qualified Data.Set as S
-
--- import qualified Distribution.Package             as CP
--- import qualified Distribution.ParseUtils          as CP
 import qualified Distribution.Simple.Compiler        as CC
 import qualified Distribution.Simple.GHC             as CG
--- import qualified Distribution.Simple.Configure       as CC
 import qualified Distribution.Simple.PackageIndex    as CI
-
 import qualified Distribution.Simple.Program.Builtin as CP
 import qualified Distribution.Simple.Program.Db      as CP
 import qualified Distribution.Simple.Program         as CP
-
 import qualified Distribution.Verbosity           as CVB
 import qualified Distribution.Version             as CV
 import qualified Distribution.Text                as CT
 
 import           Options.Applicative.Types (ReadM, readerError)
 
--- data GhcPkg = GhcPkg { args :: [String] , stack :: Db }
--- data Db = Single FilePath | Ghc (Maybe String) 
-   
 data Db = 
   -- A cabal sandbox db, with optional path to sandbox configuration file  
  Sandbox FilePath
