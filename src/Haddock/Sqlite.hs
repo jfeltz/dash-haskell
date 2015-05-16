@@ -15,7 +15,7 @@ data IndexRow = IndexRow {
   nameAttr :: T.Text 
   , typeAttr :: T.Text 
   , pathAttr :: T.Text 
-  , modAttr :: T.Text 
+  ,  modAttr :: T.Text 
 } deriving (Show)
 
 instance Monoid IndexRow where
@@ -25,15 +25,14 @@ instance Monoid IndexRow where
       (mappend (nameAttr l) (nameAttr r))
       (mappend (typeAttr l) (typeAttr r))
       (mappend (pathAttr l) (pathAttr r))
-      (mappend (modAttr l) (modAttr r))
+      (mappend (modAttr l)  (modAttr r))
 
--- TODO lensify
 instance ToRow IndexRow where
   toRow index = 
-    [SQLText . nameAttr $ index
+    [  SQLText . nameAttr $ index
      , SQLText . typeAttr $ index
      , SQLText . pathAttr $ index
-     , SQLText . modAttr $ index
+     , SQLText . modAttr  $ index
     ]
   
 -- I probably chould derive this from a type, but that's overkill right now.
@@ -43,12 +42,14 @@ table = "searchIndex(name, type, path, module)"
 createTable :: Connection -> IO ()
 createTable conn =
   mapM_ (execute_ conn) 
-    ["CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT, module TEXT);",
+    ["CREATE TABLE " +
+      "searchIndex" +
+        "(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT, module TEXT);",
       Query . T.pack $ "CREATE UNIQUE INDEX anchor ON " ++ table ++ ";"]
 
 insertRow :: Connection -> IndexRow -> IO ()
 insertRow conn =
-  execute conn 
+  execute conn
     (Query . T.pack $ "INSERT OR IGNORE INTO " ++ table ++ " VALUES (?,?,?,?);")
 
 modStr :: ModuleName -> String 
@@ -57,13 +58,13 @@ modStr = display
 modUrl :: ModuleName -> String
 modUrl = map (\c-> if c == '.' then '-' else c) . modStr 
 
-escapeSpecial :: String -> String 
+escapeSpecial :: String -> String
 escapeSpecial = 
   concatMap 
     (\c -> if c `elem` specialChars then '-': show (fromEnum c) ++ "-" else [c])
   where
-    specialChars  :: String 
-    specialChars  = "!&|+$%(,)*<>-/=#^\\?"
+    specialChars :: String
+    specialChars = "!&|+$%(,)*<>-/=#^\\?"
  
 -- | Update the sqlite database with the given haddock artifact.
 fromArtifact :: PackageIdentifier -> Connection -> Artifact -> M ()
@@ -84,13 +85,13 @@ fromArtifact p conn art = do
     -- | Convert haddock artifacts to attributes for table update.
     toAttributes = 
       case art of 
-       Haddock _               ->
+       Haddock _              ->
          -- TODO unsupported right now 
          return Nothing 
-       Package                 ->  
+       Package                ->  
          return . Just $ 
            (show p, "Package", "index.html", [])
-       Module mod_name           -> 
+       Module mod_name        -> 
          return . Just $
             (modStr mod_name, 
              "Module" , 
