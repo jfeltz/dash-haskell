@@ -1,5 +1,6 @@
 module Pipe.Conf where
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.M
 import           Control.Monad.Trans.Either
 import qualified Data.List as L
@@ -8,8 +9,8 @@ import           Data.String.Util
 import           Distribution.InstalledPackageInfo as DIP
 import qualified Filesystem.Path.CurrentOS as P
 import           Package.Conf
-import qualified System.Directory as D
-import           FileSystem       
+import           FilePath       
+import           Pipes                 
        
 confError :: FilePath -> String -> M r
 confError path fatal = 
