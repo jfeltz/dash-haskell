@@ -20,6 +20,7 @@ import qualified Distribution.Simple.Program         as CP
 
 import qualified Distribution.Verbosity           as CVB
 import qualified Distribution.Version             as CV
+import qualified Distribution.Text                as CT
 
 import           Options.Applicative.Types (ReadM, readerError)
 
@@ -91,19 +92,17 @@ cabalDb (Path    p) = return . CC.SpecificPackageDB $ p
 -- | This will warn here or downstream when using out of bounds haddock 
 -- ghc-pkg: >=7.10 && <7.10.2
 ghcVersionRange :: CV.VersionRange
-ghcVersionRange = CV.withinVersion . read $ "7.10" 
-
-clause :: String
-clause = 
-  "results may not match current supported haddock: " ++ show ghcVersionRange 
+ghcVersionRange = 
+ CV.intersectVersionRanges 
+   (CV.orLaterVersion (CV.Version [7,10]   [])) 
+   (CV.earlierVersion (CV.Version [7,10,2] [])) 
 
 fromStack :: [CC.PackageDB] -> M CI.InstalledPackageIndex 
 fromStack stack = do 
   version <- liftIO $ CP.programFindVersion CP.ghcPkgProgram CVB.normal "ghc-pkg"
   case version of
     Nothing ->
-      warning $ 
-        "unable to determine ghc-pkg version, \n" ++ clause
+      warning $ "unable to determine ghc-pkg version, \n" ++ clause
     Just v ->
       unless (not $ CV.withinRange v ghcVersionRange) $ 
         warning $
@@ -114,3 +113,8 @@ fromStack stack = do
   where
     program_conf :: CP.ProgramConfiguration
     program_conf = CP.restoreProgramDb [CP.ghcPkgProgram] CP.emptyProgramDb
+    clause :: String
+    clause = 
+      "results may not match current supported haddock: " 
+      ++ show (CT.disp ghcVersionRange) 
+
