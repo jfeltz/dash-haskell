@@ -13,7 +13,7 @@ import           Filesystem as F
 import           Filesystem.Path.CurrentOS ((</>))
 import qualified Filesystem.Path.CurrentOS as P
 import           Package.Conf
-import           Pipe
+import           Pipes
 import           System.Directory ( doesDirectoryExist, getDirectoryContents )
 import qualified System.Directory as D
 import           Text.HTML.TagSoup
