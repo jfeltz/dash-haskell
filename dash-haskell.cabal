@@ -103,24 +103,7 @@ description:
 
 executable dash-haskell
   main-is:             Main.hs
-  other-modules:       Pipe.Db
-                       Pipe.Conf
-                       Pipe.FileSystem
-                       Options
-                       Package
-                       Control.Monad.M 
-                       Data.String.Util
-                       Data.String.Indent
-                       Haddock
-                       Options.CabalConstraints
-                       Options.Documentation
-                       Options.Cabal
-                       Options.DbStack
-                       Haddock.Sqlite
-                       Haddock.Artifact
-                       PackageId
-                       Package.Conf
-
+  -- other-modules:      FIXME 
   build-depends:       Cabal                >= 1.18.0
                      , base                 >= 4.7 && <= 4.9
                      , bytestring           >= 0.10.0.1
