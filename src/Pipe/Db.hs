@@ -14,7 +14,7 @@ import qualified Distribution.Package as C
 import           Filesystem
 import qualified Filesystem.Path.CurrentOS as P
 
-import           Options.DbStack
+import           Db
                  
 -- imports necessary for working with Cabal package db tools 
 
@@ -25,59 +25,8 @@ import Distribution.Simple.PackageIndex as CI
 import Distribution.Simple.Compiler     as CC
 import Distribution.Verbosity           as CVB
 import Distribution.Version             as CVS
-
--- f :: DbStack -> PackageDBStack
--- f (Sandbox   _) = [SpecificPackageDB] 
--- f (Ghc       _) = [UserPackageDB, GlobalPackageDB] 
--- f (Single path) = [SpecificPackageDB path] 
-
-toIndex :: IO InstalledPackageIndex 
-toIndex = do
- result <- 
-   -- FIXME anyVersion is probably wrong, as the functional dep. 
-   -- for operated packages is as follows: 
-   -- haddock-api -> compiled ghc version -> ghc-pkg version -> ghc package 
-
-   C.lookupProgramVersion normal ghcPkgProgram anyVersion 
-    $ addKnownProgram ghcPkgProgram emptyProgramDb
- case result of 
-   Left  err                                -> undefined 
-   Right (cfd_program, version, program_db) -> undefined
- 
--- fromArgs :: String -> ConfiguredProgram -> ConfigureProgram
--- fromArgs []   cfd_program = cfd_program
--- fromArgs args cfd_program = 
-
--- fromIndex :: 
---    InstalledPackageIndex 
---    -> State [C.Dependency] (Maybe (String, PackageIdentifier)) 
--- fromIndex index = undefined 
-
-toMapping :: 
-  String ->
-  [String] ->
-  [C.Dependency] -> 
-  M [(FilePath, [(String, PackageIdentifier)])]
-toMapping cmd args deps = undefined 
-  -- res <- liftIO $ readProcessWithExitCode cmd args []
-  -- case res of 
-  --   (ExitFailure _, out, err') ->
-  --     err $ 
-  --       "failed to retrieve package db's from " ++ cmd ++", output:"
-  --       ++ out ++ '\n':err' 
-  --   (ExitSuccess, out, _) ->
-  --     fromOutput (L.lines out) pkgs []
-
-fromProvider :: 
-  DbStack -> [C.Dependency] -> M [(FilePath, [(String, PackageIdentifier)])] 
-  -- ^ (database dir, [package string -> packageId]) 
-fromProvider prov pkgs =
-  case prov of 
-    (Ghc     _) -> toMapping cmd extra_args pkgs
-    (Sandbox _) -> toMapping cmd extra_args pkgs
-    (Single fp) -> fromProvider (Ghc . Just $ "--package-db=" ++ fp) pkgs
-  where
-    (cmd , extra_args) = undefined
+       
+type DbStack = [Db]
 
 isConf :: PackageIdentifier -> P.FilePath -> Bool 
 isConf p f = P.hasExtension f "conf" && pkgRelated p f
