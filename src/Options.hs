@@ -106,7 +106,7 @@ prod_Dependencies options = do
   yield . nub' $ cabal_deps ++ packages options
   where
     -- This produces a version disjoint package list from the cabal file.
-    cabalDeps :: M [C.Dependency] 
+    cabalDeps :: M [C.Dependency]
     cabalDeps =  
       maybe 
         (return [])
