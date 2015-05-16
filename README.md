@@ -1,6 +1,6 @@
 dash-haskell
 ============
-**local and approximate package docs for your Haskell project dependencies**
+*Never Google for Hackage Results Again* - ian, barnacles.blackfriday
 
   **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
