@@ -1,8 +1,7 @@
 module Options.CabalConstraints where
 import qualified Data.Set as S
-import Text.ParserCombinators.Parsec
--- import Control.Applicative hiding ((<|>), many, optional)
-import Control.Monad
+import           Text.ParserCombinators.Parsec
+import           Control.Monad
 import qualified Options.Applicative.Types as O
 
 data CabalConstraints = 
