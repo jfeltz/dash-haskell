@@ -13,19 +13,10 @@ import qualified Data.Text as T
 import qualified Distribution.Package as C
 import           Filesystem
 import qualified Filesystem.Path.CurrentOS as P
-
 import           Db
-                 
 -- imports necessary for working with Cabal package db tools 
-
 import Distribution.Package
-import Distribution.Simple.Program      as C
-import Distribution.Simple.Program.Db   as CD
-import Distribution.Simple.PackageIndex as CI 
-import Distribution.Simple.Compiler     as CC
-import Distribution.Verbosity           as CVB
-import Distribution.Version             as CVS
-       
+
 type DbStack = [Db]
 
 isConf :: PackageIdentifier -> P.FilePath -> Bool 
@@ -74,7 +65,8 @@ pipe_ConfFp stack = do
         -- indentM 2 $ msg . show $ prov 
         msg "\n"
       
-      pairings <- lift $ fromProvider prov dependencies
+      -- pairings <- lift $ fromProvider prov dependencies
+      let pairings = []
 
       let found   = undefined 
           unfound = undefined
