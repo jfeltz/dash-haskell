@@ -27,15 +27,30 @@ cabalStack = (Sandbox cabalSandboxConfig, defaultStack)
 toMaybe :: Bool -> a -> Maybe a
 toMaybe True a  = Just a 
 toMaybe False _ = Nothing 
-    
-dbs :: O.Options -> [Db]
+
+matched :: [Db] -> [Db] -> Bool 
+matched []      []           = True 
+matched (d:dbs) (o:ordering) = predicate d o && matched dbs ordering where
+  predicate (Sandbox _) (Sandbox _) = True
+  predicate (Global   ) (Global   ) = True
+  predicate (User     ) (User     ) = True
+  predicate (Path    _) (Path    _) = True
+  predicate _           _           = False 
+   
+-- | produce an ordering of db's from the options, or error
+dbs :: O.Options -> Either String [Db]
 dbs opts = 
-  catMaybes $
-    sandbox : 
-    map (uncurry toMaybe) [(O.global opts, Global), (O.user opts, User)]
+  if matched actual (O.dbOrdering opts) then 
+    Right actual
+  else 
+    Left "couldn't match provided dbs with expected from ordering" 
   where 
-    sandbox :: Maybe Db 
-    sandbox = Sandbox . fromMaybe cabalSandboxConfig <$> O.sandbox opts
+    actual :: [Db]
+    actual = 
+      catMaybes $ 
+        (Sandbox . fromMaybe cabalSandboxConfig <$> O.sandbox opts) : 
+          L.map (uncurry toMaybe)
+            [(O.global opts, Global), (O.user opts, User)]
 
 main :: IO ()
 main = undefined 
