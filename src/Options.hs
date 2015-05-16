@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 module Options where
 import           Pipes
 
@@ -9,7 +7,6 @@ import           Control.Monad.M
 import           Data.Monoid
 import qualified Distribution.Package as C
 import           Distribution.Text
-import qualified Distribution.Version as CV
 
 import           Options.Applicative.Types (readerAsk)
 import           Options.Applicative.Builder
