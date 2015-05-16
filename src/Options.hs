@@ -97,9 +97,6 @@ parser = Options <$>
       <> metavar "ordering=global,user,sandbox .."
       <> help "set ordering")
 
-versionless :: String -> C.PackageId
-versionless n = C.PackageIdentifier (C.PackageName n) $ CV.Version [] [] 
-
 -- | This yields requested packages from command line and cabal file, if any.
 -- post-condition:
 --  a version overlap doesn't exist in dependency list
