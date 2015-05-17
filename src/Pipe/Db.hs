@@ -9,8 +9,8 @@ import           Control.Monad.M
 -- import qualified Data.List as L
 -- import qualified Data.Set as S
 -- import qualified Data.Text as T
--- import           System.FilePath.Posix hiding (readFile)
--- import qualified System.FilePath.Posix as P
+-- import           System.FilePath hiding (readFile)
+-- import qualified System.FilePath as P
 import           Db
 import           FilePath
 import           Text.ParserCombinators.Parsec hiding (State)
@@ -25,77 +25,9 @@ import qualified Distribution.Package as C
 import qualified Distribution.Verbosity           as CVB
 import qualified Distribution.Version             as CV
 import qualified Distribution.Text        as CT
+import qualified Module as Ghc
 import Data.Maybe
 import Package.Conf
-
-type DbStack = [Db]
-
--- isConf :: PackageIdentifier -> P.FilePath -> Bool 
--- isConf p f = P.hasExtension f "conf" && pkgRelated p f
-  
--- findConf :: 
---   PackageIdentifier 
---   -> State (S.Set P.FilePath) (Either PackageIdentifier P.FilePath)
--- findConf package = do
---   files <- get 
---   let matching = S.filter (isConf package) files
---   if not . S.null $ matching
---     then let found = S.findMin matching in do
---       modify (S.delete (S.findMin matching))
---       return $ Right found 
---     else
---       return $ Left package 
-  
--- | Return a list of package configurations for the given
--- db and handled packages
--- fromPair :: FilePath -> [PackageIdentifier] -> M [FilePath]
--- fromPair _ []      =
---   return [] 
--- fromPair db members = do 
---   confs <- S.fromList <$> liftIO (listDirectory db)
---   let (remainder, confs') = partitionEithers $ evalState (mapM findConf members) confs 
---   unless (L.null remainder) . warning $ 
---     "The following packages were not found in the pkg db dir: \n" ++  
---     L.intercalate "\n" (map show remainder)
---   mapM (return . P.encodeString) confs'
-
--- pkgRelated :: PackageIdentifier -> P.FilePath -> Bool
--- pkgRelated p = 
---   T.isPrefixOf (T.pack . show $ p) . T.pack . P.encodeString . P.filename
-
--- pipe_ConfFp :: DbStack -> PipeM [C.Dependency] FilePath ()
--- pipe_ConfFp stack = do 
---   dependencies <- await 
---   if L.null dependencies 
---     then  
---       lift . err $ "no results possible due to no packages provided"  
---     else do
---       lift $ do
---         msg "db provider:"
---         -- indentM 2 $ msg . show $ prov 
---         msg "\n"
-      
---       -- pairings <- lift $ fromProvider prov dependencies
---       let pairings = []
-
---       let found   = undefined 
---           unfound = undefined
---       -- let found = S.unions $ map (S.fromList . map fst . snd) pairings 
---       --     unfound = S.difference dependencies found 
-
---       if not . S.null $ unfound then
---         lift . err $ 
---           L.intercalate "\n"  
---             ("The following packages were not found in searched package db's:" 
---             : S.toList unfound)
-
---       else -- yield over each returned file,
---            --  types are added to make this _much_ easier to understand  
---         let 
---           mapped :: (FilePath, [(String, C.PackageIdentifier)]) -> M [FilePath]
---           mapped = uncurry fromPair . (\(db, members) -> (db, map snd members))
---         in 
---           mapM_ yield =<< lift (L.concat <$> mapM mapped pairings)
 
 field :: String -> Parser String
 field str =
@@ -160,7 +92,10 @@ toConf info = do
   interfaceFile' <- listToMaybe $ CI.haddockInterfaces info
   htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
   return $ 
-    Conf (CI.sourcePackageId info) interfaceFile' htmlDir' (CI.exposed info)
+    Conf 
+      (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
+      interfaceFile' htmlDir' 
+      (CI.exposed info)
 
 fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe Conf 
 fromIndex dep index = 
@@ -170,7 +105,3 @@ fromIndex dep index =
     versions = CI.lookupDependency index dep
   in
     listToMaybe . catMaybes . concat . map (map toConf . snd) $ versions 
-          
--- TODO 
--- apply lookupDependency :: PackageInstalled a => PackageIndex a -> Dependency -> [(Version, [a])] 
--- at this point
