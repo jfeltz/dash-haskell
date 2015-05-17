@@ -7,7 +7,7 @@ import qualified Data.Text as T
 import           Database.SQLite.Simple
 import           Haddock.Artifact
 import qualified Name as Ghc
-import Distribution.Package
+import qualified Module as Ghc
 import Distribution.ModuleName
 import Distribution.Text
 
@@ -42,9 +42,7 @@ table = "searchIndex(name, type, path, module)"
 createTable :: Connection -> IO ()
 createTable conn =
   mapM_ (execute_ conn) 
-    ["CREATE TABLE " +
-      "searchIndex" +
-        "(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT, module TEXT);",
+    ["CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT, module TEXT);",
       Query . T.pack $ "CREATE UNIQUE INDEX anchor ON " ++ table ++ ";"]
 
 insertRow :: Connection -> IndexRow -> IO ()
@@ -67,7 +65,7 @@ escapeSpecial =
     specialChars = "!&|+$%(,)*<>-/=#^\\?"
  
 -- | Update the sqlite database with the given haddock artifact.
-fromArtifact :: PackageIdentifier -> Connection -> Artifact -> M ()
+fromArtifact :: Ghc.PackageKey -> Connection -> Artifact -> M ()
 fromArtifact p conn art = do
   attributes <- toAttributes
   case attributes of 
@@ -90,7 +88,7 @@ fromArtifact p conn art = do
          return Nothing 
        Package                ->  
          return . Just $ 
-           (show p, "Package", "index.html", [])
+           (Ghc.packageKeyString p, "Package", "index.html", [])
        Module mod_name        -> 
          return . Just $
             (modStr mod_name, 

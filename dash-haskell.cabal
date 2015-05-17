@@ -14,14 +14,16 @@ cabal-version:       >= 1.22
 extra-source-files:  README.md 
 
 description: 
-  Dash is a framework and file format for allowing easy lookup and indexing of
-  programming docs, e.g. API functions and modules. A number of plugins offer dash docset
-  lookup in editors such as Emacs and Vim.  By using this tool, one can
-  convert haskell package haddock(s) to docsets. 
+  A Dash.app docset is a framework and file format for allowing easy
+  lookup and indexing of programming docs, e.g. API functions and
+  modules. A number of plugins offer docset lookup in editors such as
+  Emacs and Vim.  By using this tool, one can convert haskell package
+  haddock(s) to docsets.
   .
-  The major benefit of dash-haskell, is that once these docsets are built, dash tools
-  provide one of the few, if only solutions for offline, contextual, and project dependency
-  approximate IDE documentation for Haskell. 
+  The major benefit of dash-haskell, is that once these docsets are
+  built, dash tools provide one of the few, if only solutions for
+  offline, contextual, and project dependency approximate IDE
+  documentation for Haskell.
   .
   Summary:
   .
@@ -104,13 +106,14 @@ description:
 executable dash-haskell
   main-is:             Main.hs
   -- other-modules:      FIXME 
-  build-depends:       Cabal                >= 1.18.0
+  build-depends:     Cabal                >= 1.18.0
                      , base                 >= 4.7 && <= 4.9
                      , bytestring           >= 0.10.0.1
                      , containers           >= 0.5.5.1
                      , direct-sqlite >= 2.3.13
                      , directory            >= 1.2.1.0
                      , either               >= 4.3
+                     , filepath             >= 1.4.0.0
                      , ghc                  >= 7.10.1
                      , mtl                  >= 2.1.3.1
                      , optparse-applicative >= 0.11.0.1
@@ -118,7 +121,7 @@ executable dash-haskell
                      , process              >= 1.2.0.0
                      , sqlite-simple        >= 0.4.5.0
                      , system-fileio        >= 0.3.12 && < 0.4.0
-                     , system-filepath      >= 0.3.1 && < 0.5
+                     , system-filepath >= 0.4.13.2
                      , tagsoup              >= 0.12.7
                      , text                 >= 0.7.1
 --                    , transformers-compat  >= 0.3 && < 0.5

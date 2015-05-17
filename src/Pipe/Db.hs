@@ -27,7 +27,7 @@ import qualified Distribution.Version             as CV
 import qualified Distribution.Text        as CT
 import qualified Module as Ghc
 import Data.Maybe
-import Package.Conf
+import PackageConf
 
 field :: String -> Parser String
 field str =
@@ -42,9 +42,7 @@ singleField str = try (field str) <|> (anyToken >> singleField str)
 parsedDbPath :: String -> M String 
 parsedDbPath path = do
   buf <- liftIO $ readFile path
-  case runParser (singleField "package-db") () path buf of
-    Left  str -> err . show $ str
-    Right db      -> return db 
+  fromE $ runParser (singleField "package-db") () path buf
 
 cabalDb :: Db -> M CC.PackageDB
 cabalDb (Sandbox config) = do
@@ -83,20 +81,6 @@ toIndex stack = do
       "results may not match current supported haddock: " 
       ++ show (CT.disp ghcVersionRange) 
 
-toMaybe :: Bool -> a -> Maybe a
-toMaybe True a  = Just a 
-toMaybe False _ = Nothing 
-
-toConf :: CI.InstalledPackageInfo -> Maybe Conf 
-toConf info = do 
-  interfaceFile' <- listToMaybe $ CI.haddockInterfaces info
-  htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
-  return $ 
-    Conf 
-      (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
-      interfaceFile' htmlDir' 
-      (CI.exposed info)
-
 fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe Conf 
 fromIndex dep index = 
   let 
@@ -105,3 +89,13 @@ fromIndex dep index =
     versions = CI.lookupDependency index dep
   in
     listToMaybe . catMaybes . concat . map (map toConf . snd) $ versions 
+  where
+    toConf :: CI.InstalledPackageInfo -> Maybe Conf 
+    toConf info = do 
+      interfaceFile' <- listToMaybe $ CI.haddockInterfaces info
+      htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
+      return $ 
+        Conf 
+          (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
+          interfaceFile' htmlDir' 
+          (CI.exposed info)

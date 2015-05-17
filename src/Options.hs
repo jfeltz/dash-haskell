@@ -1,9 +1,5 @@
 module Options where
-import           Pipes
-
 import           Control.Applicative
-import           Control.Monad.M
-
 import           Data.Monoid
 import qualified Distribution.Package as C
 import           Distribution.Text
@@ -11,7 +7,6 @@ import           Distribution.Text
 import           Options.Applicative.Types (readerAsk)
 import           Options.Applicative.Builder
 import           Options.Applicative.Common
-import           Options.Cabal
 import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
 import           Db
 import           Options.Db
@@ -93,18 +88,3 @@ parser = Options <$>
       <> value dbPaths 
       <> metavar "ordering=global,user,sandbox .."
       <> help "set ordering")
-
--- | This yields requested packages from command line and cabal file, if any.
--- post-condition:
---  a version overlap doesn't exist in dependency list
-prod_Dependencies :: Options -> ProducerM [C.Dependency] () 
-prod_Dependencies options = do 
-  cabal_deps <- lift cabalDeps
-  yield . nub' $ cabal_deps ++ packages options
-  where
-    -- This produces a version disjoint package list from the cabal file.
-    cabalDeps :: M [C.Dependency]
-    cabalDeps =  
-      maybe 
-        (return [])
-        (`readPackages` cabalConstraints options) $ cabalFile options
