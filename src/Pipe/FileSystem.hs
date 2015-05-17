@@ -160,7 +160,6 @@ pipe_htmlConvert p =
           Right tags ->
             yield (src, Just . encodeUtf8 . renderTags $ tags) 
 
-
 -- | This consumes a doc file and copies it to a path in 'dstRoot'. 
 -- By pre-condition: 
 --   path has src_root as an ancestor 

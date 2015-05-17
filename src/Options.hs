@@ -17,9 +17,7 @@ data Options = Options {
   cabalFile        :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
   packages         :: [C.Dependency],
-
   sandbox          :: Maybe (Maybe FilePath),
-  global           :: Bool,
   user             :: Bool,
   db               :: Maybe FilePath,
   dbOrdering       :: [Db] 
@@ -71,9 +69,7 @@ parser = Options <$>
       <> value Nothing
       <> help "package sandbox file")
   <*>
-  switch (long "global" <> short 'g' <> help "source packages from global db")
-  <*>
-  switch (long "user" <> short 'u' <> help "source packages from user db")
+  switch (long "no-user" <> short 'u' <> help "don't source packages from user db")
   <*>
   option 
     (Just <$> readerAsk)
@@ -86,5 +82,5 @@ parser = Options <$>
     (long "ordering"
       <> short 'o'
       <> value dbPaths 
-      <> metavar "ordering=global,user,sandbox .."
+      <> metavar "ordering=user,sandbox .."
       <> help "set ordering")

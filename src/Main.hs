@@ -1,28 +1,31 @@
-import           Pipe.FileSystem
 import           Control.Monad.M
-import           Pipe.Conf
-import           Options.Applicative
-import           Options.Documentation
-import qualified Options as O
-import qualified Distribution.Package as C
 import qualified Data.List as L
-
-import           System.Environment
-import           Pipes
+import qualified Distribution.Package as C
+import qualified Options as O
+import           Options.Applicative
 import           Options.Cabal
-                 
+import           Options.Documentation
+import           Pipe.Conf
+import           Pipe.FileSystem
+import           Pipes
+import           System.Environment
+    
 -- | This yields requested packages from command line and cabal file, if any.
 -- post-condition: no version overlap in returned 
 prod_Dependencies :: O.Options -> ProducerM C.Dependency () 
 prod_Dependencies options = do
   cabal_deps <- lift cabalDeps
-  each . nub' $ cabal_deps ++ O.packages options
+  let deps = cabal_deps ++ O.packages options
+  if L.null deps then 
+    liftIO $ putStrLn "quitting due to no package dependencies evaluated"
+  else
+    each . nub' $ deps 
   where
     -- This produces a version disjoint package list from the cabal file.
     cabalDeps :: M [C.Dependency]
     cabalDeps =  
       maybe 
-        (return [])
+        ((return []))
         (`readPackages` O.cabalConstraints options) $ O.cabalFile options
 
 main :: IO ()

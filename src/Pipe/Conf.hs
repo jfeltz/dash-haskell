@@ -1,19 +1,11 @@
--- TODO ensure this handles hidden cases
-{-# LANGUAGE OverloadedStrings #-}
-module Pipe.Db where
-import           Pipes
-import           Control.Monad
-import           Control.Monad.M
--- import           Control.Monad.State
--- import           Data.Either
--- import qualified Data.List as L
--- import qualified Data.Set as S
--- import qualified Data.Text as T
--- import           System.FilePath hiding (readFile)
--- import qualified System.FilePath as P
-import           Db
-import           FilePath
-import           Text.ParserCombinators.Parsec hiding (State)
+module Pipe.Conf where
+-- import Data.String.Util
+import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.M
+import PackageConf
+import FilePath       
+import Text.ParserCombinators.Parsec hiding (State)
 import qualified Distribution.InstalledPackageInfo   as CI
 import qualified Distribution.Simple.Compiler        as CC
 import qualified Distribution.Simple.GHC             as CG
@@ -25,9 +17,14 @@ import qualified Distribution.Package as C
 import qualified Distribution.Verbosity           as CVB
 import qualified Distribution.Version             as CV
 import qualified Distribution.Text        as CT
+import Db
+import qualified Options as O
+import           Data.Maybe
+import           Data.Maybe.Util
+import qualified Data.List as L
+import qualified Data.Set  as S
+import Pipes
 import qualified Module as Ghc
-import Data.Maybe
-import PackageConf
 
 field :: String -> Parser String
 field str =
@@ -65,17 +62,20 @@ toIndex stack = do
   version <- liftIO $ CP.programFindVersion CP.ghcPkgProgram CVB.normal "ghc-pkg"
   case version of
     Nothing ->
-      warning $ "unable to determine ghc-pkg version, \n" ++ clause
+      warning $
+        "unable to determine ghc-pkg version, \n" ++ clause
     Just v ->
-      unless (not $ CV.withinRange v ghcVersionRange) $ 
+      unless (CV.withinRange v ghcVersionRange) $ 
         warning $
-        "ghc-pkg version: " ++ show version ++ "not within allowable range, \n" 
-        ++ clause
-  
-  liftIO $ CG.getInstalledPackages CVB.normal stack program_conf
+          "ghc-pkg version: "
+          ++ show (CT.disp v) ++ " not within allowable range,\n"
+          ++ clause
+  liftIO $ do
+    minimal_programs <- CP.configureAllKnownPrograms CVB.normal $ 
+      CP.restoreProgramDb [CP.ghcPkgProgram, CP.ghcProgram] CP.emptyProgramDb
+
+    CG.getInstalledPackages CVB.silent stack minimal_programs
   where
-    program_conf :: CP.ProgramConfiguration
-    program_conf = CP.restoreProgramDb [CP.ghcPkgProgram] CP.emptyProgramDb
     clause :: String
     clause = 
       "results may not match current supported haddock: " 
@@ -88,7 +88,7 @@ fromIndex dep index =
     versions :: [(CV.Version, [CI.InstalledPackageInfo])]
     versions = CI.lookupDependency index dep
   in
-    listToMaybe . catMaybes . concat . map (map toConf . snd) $ versions 
+    listToMaybe . catMaybes . concatMap (map toConf . snd) $ versions 
   where
     toConf :: CI.InstalledPackageInfo -> Maybe Conf 
     toConf info = do 
@@ -99,3 +99,51 @@ fromIndex dep index =
           (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
           interfaceFile' htmlDir' 
           (CI.exposed info)
+
+cabalSandboxConfig :: String
+cabalSandboxConfig = "./cabal.sandbox.config"       
+
+toOptionDbs :: O.Options -> S.Set Db
+toOptionDbs options = 
+  S.fromList . catMaybes $ 
+    (Path <$> O.db options) 
+    : (Sandbox . fromMaybe cabalSandboxConfig <$> O.sandbox options)
+    : [ toMaybe (not $ O.user options) User ]
+
+-- | Produce remaining db's given total ordering of dbs and possibly
+-- smaller list of dbs.
+fromOrdering :: [Db] -> S.Set Db -> Either String [Db]
+fromOrdering []           s =
+  if S.null s then
+    Right []
+  else
+    Left "failed to match package db listing with undefined ordering" 
+fromOrdering (o:ordering) s =  
+  if not $ S.member o s then 
+    fromOrdering ordering s
+  else
+    case L.find (o ==) (S.elems s) of
+       Nothing -> Left "failed to find matched db in ordering"
+       Just e  -> (e :) <$> fromOrdering ordering (S.delete o s)
+
+pipe_Conf :: O.Options -> PipeM C.Dependency Conf ()
+pipe_Conf options = do
+  index <- lift $ do 
+    dbs <-
+      (Global:)
+      <$>
+      fromE (fromOrdering (O.dbOrdering options) $ toOptionDbs options)
+    liftIO . putStr $
+      "using package db stack:\n > "
+      ++ L.intercalate "\n > " (map show dbs)
+      ++ "\n\n"
+    toIndex =<< mapM cabalDb dbs
+  forever $ do
+    dep <- await
+    case fromIndex dep index of 
+      Nothing -> 
+        lift . warning $ 
+          "failed to find suitable documentation candidate for package:\n " 
+          ++ (show . CT.disp $ dep) 
+      Just conf -> 
+          yield conf

@@ -2,7 +2,7 @@ module Options.Documentation where
 import qualified Data.Set as S
 import qualified Data.List as L
 import qualified Data.Map as M
-import Data.String.Indent
+import Data.String.Util
 
 data Topic = Topic { title :: String, content :: String } 
 instance Eq Topic where

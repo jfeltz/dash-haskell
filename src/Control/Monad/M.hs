@@ -2,16 +2,14 @@
   UndecidableInstances, FlexibleInstances, TypeSynonymInstances
   #-}
 module Control.Monad.M where
+import Control.Monad
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
-import Control.Monad.IO.Class
-import Control.Monad
 import qualified Data.List as L
-
-import System.Exit
+import Data.String.Util
 import Pipes
-
-import Data.String.Indent
+import System.Exit
 
 type M r = ReaderT Env (EitherT String IO) r
 
