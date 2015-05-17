@@ -1,3 +1,6 @@
+{-# LANGUAGE 
+  UndecidableInstances, FlexibleInstances, TypeSynonymInstances
+  #-}
 module Control.Monad.M where
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
@@ -41,9 +44,19 @@ msg str = do
 
 err :: String -> M r
 err = lift . left
-    
-fromE :: Either String a -> M a
-fromE (Left  str) = err str 
+
+-- Nasty workaround for handling (Show a) uniformly with strings
+class Unquoted a where
+  toString :: a -> String
+instance {-# OVERLAPPING #-} Unquoted String where
+  toString = id
+instance {-# OVERLAPPING #-} Unquoted Char where
+  toString x = [x]
+instance Show a => Unquoted a where
+  toString = show   
+
+fromE :: (Unquoted b) => Either b a -> M a
+fromE (Left  er)  = err . toString $ er 
 fromE (Right val) = return val 
 
 runM :: Env -> M () -> IO () 

@@ -171,18 +171,14 @@ cons_writeFile ::
   FilePath -> FilePath -> ConsumerM (FilePath, Maybe BS.ByteString) () 
 cons_writeFile src_root dst_root = forever $ do 
   (path, buf) <- await
-  case stripPrefix src_root path of
-    Left  err_str -> 
-      lift $ err err_str 
-    Right dst_relative_path ->
-      -- Yes, this could be shorter, but I try not to unnecessarily obfuscate
-      liftIO $ do 
-        let dst_path = dst_root </> dst_relative_path
-        -- create requisite parent directories for the file at the destination
-        D.createDirectoryIfMissing True $ parent dst_path 
-        case buf of 
-          Nothing   -> D.copyFile path dst_path 
-          Just buf' -> writeFile dst_path $ unpack buf'
+  dst_relative_path <- lift . fromE $ stripPrefix src_root path 
+  liftIO $ do 
+    let dst_path = dst_root </> dst_relative_path
+    -- create requisite parent directories for the file at the destination
+    D.createDirectoryIfMissing True $ parent dst_path 
+    case buf of 
+      Nothing   -> D.copyFile path dst_path 
+      Just buf' -> writeFile dst_path $ unpack buf'
   
 cons_writeFiles :: FilePath -> ConsumerM Conf ()
 cons_writeFiles docsets_root = forever $ do
