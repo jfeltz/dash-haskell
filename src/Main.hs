@@ -1,8 +1,5 @@
--- import           Control.Monad.M
-
--- import           Pipes
--- import           Pipe.FileSystem
--- import           Pipe.Conf
+import           Pipe.FileSystem
+import           Pipe.Conf
 -- import           Pipe.Db
 import           Options.Applicative
 import           Options.Documentation
@@ -59,19 +56,16 @@ main = do
   case L.partition (== "help") args of 
     ([], args') -> do
       options <- handleParseResult $ execParserPure (prefs idm) parserInfo args'
-      return ()
-      
       -- Run the package processing pipeline. Packages that can't be
       -- completed due -- to either conversion error or user error, should, if
       -- necessary, leave a safe partially -- completed state on the FS that
       -- can be handled by dependant tools, e.g. Emacs helm-dash.
 
-      -- runM (newEnv (not . quiet $ options)) . runEffect $
-      --   -- writes converted html, haddock, and sql db
-      --   cons_writeFiles (P.decodeString $ outputDir options) 
-      --   <-< pipe_Conf                         -- yields vetted package configs
-      --   <-< pipe_ConfFp (dbprovider options)  -- yields GHC package config files
-      --   <-< prod_Dependencies options         -- yields packages from options
+      runM (newEnv (not . quiet $ options)) . runEffect $
+        -- writes converted html, haddock, and sql db
+      cons_writeFiles (O.outputDir options) 
+      <-< pipe_Conf                         -- yields vetted package configs
+      <-< prod_Dependencies options         -- yields packages from options
     (_, rest) -> toHelp docs rest
   
   where 

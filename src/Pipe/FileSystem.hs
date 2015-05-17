@@ -1,18 +1,18 @@
+-- TODO repl test file path methods.
+
 {-# LANGUAGE OverloadedStrings #-}
 module Pipe.FileSystem where
 import           Control.Monad
 import           Control.Monad.M
 import qualified Data.ByteString as BS
-import           Data.ByteString.Char8 (pack)
+import           Data.ByteString.Char8 (unpack, pack)
 import qualified Data.List as L
 import           Data.String.Util
 import qualified Data.Text as T
 import           Data.Text.Encoding
 import           Database.SQLite.Simple
-import           Filesystem as F
-import           Filesystem.Path.CurrentOS ((</>))
-import qualified Filesystem.Path.CurrentOS as P
-import           Package.Conf
+import           System.FilePath
+import           PackageConf
 import           Pipes
 import           System.Directory ( doesDirectoryExist, getDirectoryContents )
 import qualified System.Directory as D
@@ -20,21 +20,20 @@ import           Text.HTML.TagSoup
 import           Text.HTML.TagSoup.Match
 import           Haddock.Artifact
 import           Haddock.Sqlite
-import           Distribution.Package
-import           Distribution.Text
+import qualified Module as Ghc
 
 -- TODO the utility of some of these fields is still unclear to me,
 -- at the moment they are filled simply to satisfy the docset spec.
-plist :: PackageIdentifier -> BS.ByteString
-plist p = Data.ByteString.Char8.pack . unlines $
+plist :: String -> BS.ByteString
+plist str = pack . unlines $
   [ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
   , "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"
   , "<plist version=\"1.0\">"
   , "<dict>"
   , "<key>CFBundleIdentifier</key>"
-  , "<string>" ++ display p ++ "</string>"
+  , "<string>" ++ str ++ "</string>"
   , "<key>CFBundleName</key>"
-  , "<string>docset for Haskell package " ++ display p ++ "</string>"
+  , "<string>docset for Haskell package " ++ str ++ "</string>"
   , "<key>DocSetPlatformFamily</key>"
   , "<string>haskell</string>" 
   , "<key>isDashDocset</key>"
@@ -45,15 +44,15 @@ plist p = Data.ByteString.Char8.pack . unlines $
   , "</plist>"
   ]
 
-docsetDir :: PackageIdentifier -> P.FilePath
-docsetDir p = P.decodeString $ display p ++ ".docset" 
+docsetDir :: Ghc.PackageKey -> FilePath
+docsetDir k = Ghc.packageKeyString k ++ ".docset" 
 
-leafs :: (P.FilePath -> Bool) -> P.FilePath -> ProducerM P.FilePath ()
+leafs :: (FilePath -> Bool) -> FilePath -> ProducerM FilePath ()
 leafs incPred p = do
-  names <- liftIO . getDirectoryContents $ P.encodeString p
+  names <- liftIO $ getDirectoryContents p
   forM_ (filter (`notElem` [".", ".."]) names) $ \name' -> do
-    let path = p </> P.decodeString name'
-    dir <- liftIO . doesDirectoryExist $ P.encodeString path
+    let path = p </> name'
+    dir <- liftIO . doesDirectoryExist $ path
     (if dir then 
       leafs incPred 
      else if not . incPred $ path then const (return ()) else yield)
@@ -64,64 +63,69 @@ type Tag' = Tag T.Text
 remoteUrl :: T.Text -> Bool 
 remoteUrl url = any (T.isPrefixOf url) ["http://", "https://"]
 
-toStripped :: P.FilePath -> P.FilePath -> Either String P.FilePath
-toStripped pfx original =
-  -- I don't understand why System.FilePath.CurrentOS necessitates
-  -- additional checking after the prefix has already been determined.
-  case P.stripPrefix pfx original of 
-    Nothing ->
-      Left $
-        "attempted to strip prefix: \n " 
-        ++ P.encodeString pfx ++ " from: \n " ++ P.encodeString original
-    Just remainder ->  
-      Right remainder
+-- toStripped :: FilePath -> FilePath -> Either String FilePath
+-- toStripped pfx original =
+         
+common :: FilePath -> FilePath -> FilePath
+common l r = fst . unzip . takeWhile (uncurry (==)) $ zip (normalise l) (normalise r)
 
-toRelativePath :: P.FilePath -> P.FilePath -> Either String P.FilePath
+parent :: FilePath -> FilePath
+parent = takeDirectory  
+       
+stripPrefix :: FilePath -> FilePath -> Either String FilePath 
+stripPrefix prefix path = 
+  if L.isPrefixOf prefix path then
+    Right $ L.drop (L.length prefix) path
+  else 
+    Left $ "prefix: " ++ prefix ++ " doesn't agree with:\n  " ++ path
+
+toRelativePath :: FilePath -> FilePath -> Either String FilePath
 toRelativePath base path = do
-  let sharedPfx = P.commonPrefix [base, path]
-  relative <- relativePath sharedPfx 
-  (</>) relative <$> toStripped sharedPfx path 
+  let sharedPfx = common base path
+  relative <- relativePath sharedPfx
+  (</>) relative <$> stripPrefix sharedPfx path 
   where 
-    relativePath :: P.FilePath -> Either String P.FilePath
+    relativePath :: FilePath -> Either String FilePath
     relativePath pfx = 
-      P.concat 
+      joinPath 
        . flip replicate ".." 
        . length 
-       . P.splitDirectories <$> toStripped pfx base 
+       . splitPath <$> stripPrefix pfx base 
 
-relativize :: PackageIdentifier -> P.FilePath -> Either String T.Text 
+relativize :: Ghc.PackageKey -> FilePath -> Either String T.Text 
 relativize package p = 
-  let filename  = P.filename p
-      packageSubpath = P.decodeString $ display package
-      matches = filter (packageSubpath ==) . reverse $ P.splitDirectories (P.parent p)
+  let filename'      = takeFileName p
+      packageSubpath = Ghc.packageKeyString package
+      matches        = 
+        filter (packageSubpath ==) . reverse $ splitPath (parent p)
   in 
-    T.pack . P.encodeString <$> 
+    T.pack <$> 
       if L.null matches then 
         return p -- preserve the path so that it still can be used 
       else -- assume as a package doc file and make relative
-        toRelativePath packageSubpath $ L.head matches </> filename
+        toRelativePath packageSubpath $ L.head matches </> filename'
 
-convertUrl ::  PackageIdentifier -> T.Text -> Either String T.Text 
+convertUrl ::  Ghc.PackageKey -> T.Text -> Either String T.Text 
 convertUrl p urlExp 
   | T.null urlExp = Right T.empty
   | otherwise     =  
     if T.isPrefixOf "file:///" urlExp then 
-      relativize p (P.fromText . T.drop 7 $ urlExp)
+      relativize p (T.unpack . T.drop 7 $ urlExp)
     else if T.isPrefixOf "/" urlExp then 
-      relativize p $ P.fromText urlExp
+      relativize p $ T.unpack urlExp
     else
       Right urlExp
       
-attributes :: P.FilePath -> Tag T.Text -> Either String [Attribute T.Text] 
+attributes :: FilePath -> Tag T.Text -> Either String [Attribute T.Text] 
 attributes _ (TagOpen _ list) = 
   Right list
 attributes src other            =    
   Left $
     "failed to retrieve expected attributes from tag:\n "
-    ++ show other  ++ "\n in: \n" ++ P.encodeString src 
+    ++ show other  ++ "\n in: \n" ++ src 
     
 -- | Convert local package-compiled haddock links to local relative. 
-convertLink :: PackageIdentifier -> P.FilePath -> Tag' -> Either String Tag'
+convertLink :: Ghc.PackageKey -> FilePath -> Tag' -> Either String Tag'
 convertLink package src tag =
   -- We're only interested in processing links             
   if not $ tagOpenLit "a" (anyAttrNameLit "href") tag then  
@@ -137,23 +141,25 @@ convertLink package src tag =
         url' <- convertUrl package url 
         Right . TagOpen "a" $ ("href", url') : preserved 
 
-pipe_htmlConvert :: PackageIdentifier -> PipeM P.FilePath (P.FilePath, Maybe BS.ByteString) ()
+pipe_htmlConvert :: 
+  Ghc.PackageKey -> PipeM FilePath (FilePath, Maybe BS.ByteString) ()
 pipe_htmlConvert p = 
   forever $ do
     src <- await
-    if P.extension src /= Just "html" 
+    if Just (takeExtension src) /= Just "html" 
       then  
         yield (src, Nothing)
       else do 
-        buf <- liftIO $ F.readTextFile src
+        buf <- T.pack <$> liftIO (readFile src)
         -- Link conversion errors are non-fatal.
         case mapM (convertLink p src) . parseTags $ buf of
           Left e -> do 
             lift . warning $ 
-              preposition "failed to convert links" "for" "file" (P.encodeString src) [e]
+              preposition "failed to convert links" "for" "file" src [e]
             yield (src, Nothing) 
           Right tags ->
             yield (src, Just . encodeUtf8 . renderTags $ tags) 
+
 
 -- | This consumes a doc file and copies it to a path in 'dstRoot'. 
 -- By pre-condition: 
@@ -161,33 +167,33 @@ pipe_htmlConvert p =
 -- By post-condition: 
 --   written dst is the difference of path and src_root,
 --   with by the concatenation of dst_root as it's parent. 
-cons_writeFile :: P.FilePath -> P.FilePath -> ConsumerM (P.FilePath, Maybe BS.ByteString) () 
+cons_writeFile :: 
+  FilePath -> FilePath -> ConsumerM (FilePath, Maybe BS.ByteString) () 
 cons_writeFile src_root dst_root = forever $ do 
   (path, buf) <- await
-  case P.stripPrefix src_root path of
-    Nothing -> lift . err $ 
-       "filepath error when attempting to find common prefix between src: \n" 
-       ++ P.encodeString path ++ "\n and: \n" ++ P.encodeString src_root
-    Just dst_relative_path ->
+  case stripPrefix src_root path of
+    Left  err_str -> 
+      lift $ err err_str 
+    Right dst_relative_path ->
       -- Yes, this could be shorter, but I try not to unnecessarily obfuscate
       liftIO $ do 
         let dst_path = dst_root </> dst_relative_path
         -- create requisite parent directories for the file at the destination
-        F.createTree $ P.parent dst_path 
+        D.createDirectoryIfMissing True $ parent dst_path 
         case buf of 
-          Nothing   -> F.copyFile path dst_path 
-          Just buf' -> F.writeFile dst_path buf'
+          Nothing   -> D.copyFile path dst_path 
+          Just buf' -> writeFile dst_path $ unpack buf'
   
-cons_writeFiles :: P.FilePath -> ConsumerM Conf ()
+cons_writeFiles :: FilePath -> ConsumerM Conf ()
 cons_writeFiles docsets_root = forever $ do
   conf <- await
   
-  lift . msg $ "processing: " ++ (display . pkg $ conf)
+  lift . msg $ "processing: " ++ (Ghc.packageKeyString . pkg $ conf)
   let docset_folder = docsetDir (pkg conf) 
       dst_root      = docsets_root </> docset_folder 
-      dst_doc_root  = dst_root </> P.decodeString "Contents/Resources/Documents/"
+      dst_doc_root  = dst_root </> "Contents/Resources/Documents/"
 
-  liftIO . F.createTree $ dst_doc_root 
+  liftIO . D.createDirectoryIfMissing True $ dst_doc_root 
  
   -- Copy all files and convert if necessary 
   lift . indentM 2 $ msg "writing files.."
@@ -195,29 +201,28 @@ cons_writeFiles docsets_root = forever $ do
   lift . runEffect $ 
     cons_writeFile (htmlDir conf) dst_doc_root 
     <-< pipe_htmlConvert (pkg conf)
-    <-< leafs (\p -> P.extension p /= Just "haddock") (htmlDir conf)
+    <-< leafs (\p -> Just (takeExtension p) /= Just "haddock") (htmlDir conf)
   
   -- TODO Since the haddock index is already produced in source docs
   -- with latest packaging systems, this is likely unnecessary 
   -- liftIO $ do 
   --    putStrLn "running haddock indexes"
   --    runHaddockIndex (interfaceFile conf) dst_doc_root
-
   lift . indentM 2 $ msg "writing plist.."
-
-  liftIO . F.writeFile (dst_root </> "Contents/Info.plist") $ plist (pkg conf) 
+  liftIO . writeFile (dst_root </> "Contents/Info.plist") . unpack . plist . 
+    Ghc.packageKeyString . pkg $ conf 
 
   lift . indentM 2 $ msg "populating database.."
 
-  let db_path = dst_root </> P.decodeString "Contents/Resources/docSet.dsidx" 
+  let db_path = dst_root </> "Contents/Resources/docSet.dsidx" 
 
   liftIO $ do
-    db_exists <- D.doesFileExist . P.encodeString $ db_path 
-    when db_exists $ F.removeFile db_path
+    db_exists <- D.doesFileExist db_path 
+    when db_exists $ D.removeFile db_path
 
   -- Initialize the SQlite Db
   c' <- liftIO $ do 
-        c <- open . P.encodeString $ db_path 
+        c <- open db_path 
         createTable c
         return c
 
