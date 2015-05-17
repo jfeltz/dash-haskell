@@ -1,14 +1,18 @@
 import           Pipe.FileSystem
+import           Control.Monad.M
 import           Pipe.Conf
--- import           Pipe.Db
 import           Options.Applicative
 import           Options.Documentation
 import qualified Options as O
+import qualified Distribution.Package as C
 
 import qualified Data.List as L
 import           System.Environment
 import           Db
 import           Data.Maybe
+import           Data.Maybe.Util
+import           Pipes
+import           Options.Cabal
                  
 cabalSandboxConfig :: FilePath  
 cabalSandboxConfig = "./cabal.sandbox.config" 
@@ -20,20 +24,7 @@ defaultStack = [Global, User]
 cabalStack :: (Db, [Db])
 cabalStack = (Sandbox cabalSandboxConfig, defaultStack)
            
-toMaybe :: Bool -> a -> Maybe a
-toMaybe True a  = Just a 
-toMaybe False _ = Nothing 
-
-matched :: [Db] -> [Db] -> Bool 
-matched []      []           = True 
-matched (d:dbs) (o:ordering) = predicate d o && matched dbs ordering where
-  predicate (Sandbox _) (Sandbox _) = True
-  predicate (Global   ) (Global   ) = True
-  predicate (User     ) (User     ) = True
-  predicate (Path    _) (Path    _) = True
-  predicate _           _           = False 
-   
--- | produce an ordering of db's from the options, or error
+-- | produce a set-ordering of db's from the options, or error
 dbs :: O.Options -> Either String [Db]
 dbs opts = 
   if matched actual (O.dbOrdering opts) then 
@@ -48,6 +39,29 @@ dbs opts =
           L.map (uncurry toMaybe)
             [(O.global opts, Global), (O.user opts, User)]
 
+    matched :: [Db] -> [Db] -> Bool 
+    matched []      []           = True 
+    matched (d:dbs) (o:ordering) = predicate d o && matched dbs ordering where
+      predicate (Sandbox _) (Sandbox _) = True
+      predicate (Global   ) (Global   ) = True
+      predicate (User     ) (User     ) = True
+      predicate (Path    _) (Path    _) = True
+      predicate _           _           = False 
+
+-- | This yields requested packages from command line and cabal file, if any.
+-- post-condition: no version overlap in returned 
+prod_Dependencies :: O.Options -> ProducerM C.Dependency () 
+prod_Dependencies options = do
+  cabal_deps <- lift cabalDeps
+  each . nub' $ cabal_deps ++ O.packages options
+  where
+    -- This produces a version disjoint package list from the cabal file.
+    cabalDeps :: M [C.Dependency]
+    cabalDeps =  
+      maybe 
+        (return [])
+        (`readPackages` O.cabalConstraints options) $ O.cabalFile options
+
 main :: IO ()
 main = do 
   -- Check for help mode arg first. There doesn't seem to be a good way to do 
@@ -61,11 +75,10 @@ main = do
       -- necessary, leave a safe partially -- completed state on the FS that
       -- can be handled by dependant tools, e.g. Emacs helm-dash.
 
-      runM (newEnv (not . quiet $ options)) . runEffect $
-        -- writes converted html, haddock, and sql db
-      cons_writeFiles (O.outputDir options) 
-      <-< pipe_Conf                         -- yields vetted package configs
-      <-< prod_Dependencies options         -- yields packages from options
+      runM (newEnv (not . O.quiet $ options)) . runEffect $
+        cons_writeFiles (O.outputDir options) -- writes converted html, haddock, and sql db
+        <-< pipe_Conf                 -- yields vetted package configs
+        <-< prod_Dependencies options -- produces dependencies from options 
     (_, rest) -> toHelp docs rest
   
   where 
