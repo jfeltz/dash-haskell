@@ -41,6 +41,10 @@ msg str = do
 
 err :: String -> M r
 err = lift . left
+    
+fromE :: Either String a -> M a
+fromE (Left  str) = err str 
+fromE (Right val) = return val 
 
 runM :: Env -> M () -> IO () 
 runM env' comp = do 
