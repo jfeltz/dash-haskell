@@ -11,3 +11,6 @@ preposition problem prep subjectLabel subject problems =
 fromIndent ::  String -> Int -> String
 fromIndent orig margin = 
   L.unlines . L.map (L.replicate margin ' ' ++)  . L.lines $ orig  
+
+listing :: (Show a) => [a] -> String 
+listing = L.intercalate "\n" . map show
