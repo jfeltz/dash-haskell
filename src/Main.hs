@@ -25,7 +25,7 @@ prod_Dependencies options = do
     cabalDeps :: M [C.Dependency]
     cabalDeps =  
       maybe 
-        ((return []))
+        (return [])
         (`readPackages` O.cabalConstraints options) $ O.cabalFile options
 
 main :: IO ()

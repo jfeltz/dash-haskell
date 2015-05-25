@@ -17,7 +17,7 @@ type Documentation = M.Map Tag Topic
 tags :: Documentation -> [String] 
 tags = M.keys 
 
-cabalConstraintsTopic, cabalSourcingTopic, providerTopic, outputTopic, packageTopic :: Topic
+cabalConstraintsTopic, cabalSourcingTopic, outputTopic, packageTopic :: Topic
 cabalConstraintsTopic = 
   Topic "cabal constraints" $
     listing [
@@ -33,48 +33,41 @@ cabalConstraintsTopic =
       " benchmarks  : the benchmark targets to limit to",
       " library     : limit to library, this takes no arguments\n",
       " excluded    : unversioned packages to avoid using"
-   ]
+      ]
 
 cabalSourcingTopic = 
   Topic "cabal sourcing" $
     listing [
       "This command pulls package selections from a cabal file",
       "  e.g. -c <project.cabal>\n",
-      "This by default selects the highest version in the range for a package.\n",
       "Note:",
       "This command is not the same as a db provider.", 
       "This only uses package names and versions from the cabal file,", 
       "and doesn't process any information from Package Db's, other than what",
       "cabal uses internally to determine available versions.\n",
       "Note:",
-      "If the package is also requested unversioned elsewhere,", 
-      "i.e. on the command line,", 
-      "it is narrowed to the versioned range result.", 
-      "If the other is instead versioned and not equal to the highest,",
-      "both packages are processed for their docset.\n",
-      "Note:",
       "If the package occurs more than once in the cabal file", 
       "with differint range, neither package is taken", 
       "Pulled packages can be constrained, see: cabal-constraints." 
       ]
 
-providerTopic = Topic "package database provider" $
-  listing [
-    "The external program to call to produce package databases\n"
-    , "options are the form <var,args>" 
-    , "e.g:" 
-    , "    -p ghc,'--user'"
-    , " or -p dir,/home/jpf/.ghc/x86_64-linux-7.8.3/package.conf.d\n"
-    , "Note, only one provider at once is supported at this time.\n"
-    , "pairings for <var,args>:"
-    , " var                                        args "
-    , "-----------------------------------------   ----------------------------"
-    , " cabal : use sandbox topped db stack         non-default cabal sandbox"
-    , "                                             config path"
-    , " ghc   : use ghc's package db stack          additional flag string to"
-    , "                                             pass to ghc-pkg"
-    , " dir   : use package db dir directory        the package db directory"
-    ]
+-- providerTopic = Topic "package database provider" $
+--   listing [
+--     "The external program to call to produce package databases\n"
+--     , "options are the form <var,args>" 
+--     , "e.g:" 
+--     , "    -p ghc,'--user'"
+--     , " or -p dir,/home/jpf/.ghc/x86_64-linux-7.8.3/package.conf.d\n"
+--     , "Note, only one provider at once is supported at this time.\n"
+--     , "pairings for <var,args>:"
+--     , " var                                        args "
+--     , "-----------------------------------------   ----------------------------"
+--     , " cabal : use sandbox topped db stack         non-default cabal sandbox"
+--     , "                                             config path"
+--     , " ghc   : use ghc's package db stack          additional flag string to"
+--     , "                                             pass to ghc-pkg"
+--     , " dir   : use package db dir directory        the package db directory"
+--     ]
 
 outputTopic= Topic "output" $ 
  listing [
@@ -85,13 +78,7 @@ outputTopic= Topic "output" $
  ]
 
 packageTopic= Topic "package" $
-  listing
-    ["a ghc package, e.g. either, or either-4.1.0" ,
-    "1. dash-haskell will choose the versioned package if provided", 
-    "both unversioned and versioned",
-    "2. If the package is unversioned it will choose the first as located by",
-    " the package db provider."
-    ]
+  "a ghc package, e.g. either, or either-4.1.0"
 
 toEntry :: S.Set String -> Topic -> Documentation -> Documentation 
 toEntry s t doc = L.foldl (\m' k -> M.insert k t m') doc $ S.toList s 
@@ -102,7 +89,7 @@ docs =
     L.foldl fromListing M.empty [
       (cabalSourcingTopic    , ["c", "cabal"]),
       (cabalConstraintsTopic , ["r", "cabal-constraints"]),
-      (providerTopic         , ["p", "dbprovider", "provider"]),
+      -- (providerTopic         , ["p", "dbprovider", "provider"]),
       (outputTopic           , ["o", "outputdir", "output", "docset"]),
       (packageTopic          , ["packages", "package"])
       ]

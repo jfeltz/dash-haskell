@@ -59,10 +59,8 @@ fromTargetType narrowing tgts = do
     . M.fromList $
     zip (S.toList used_TargetToDeps) (replicate (S.size used_TargetToDeps) ())
 
--- TODO Could be made more resilent WRT changes in cabal file format.
 data DependencyDescription =
   DependencyDescription { 
-    -- Inv: C.Dependencies are non-duplicate
     library    :: Maybe [C.Dependency],
     execs      :: TargetToDeps,
     suites     :: TargetToDeps, 
@@ -72,10 +70,9 @@ data DependencyDescription =
 toPkgName :: C.Dependency -> String
 toPkgName (C.Dependency (C.PackageName name) _) = name
 
--- TODO test
 vintersection :: C.Dependency -> C.Dependency -> Bool
 vintersection (C.Dependency _ lv) (C.Dependency _ rv) = 
- C.intersectVersionRanges lv rv == C.noVersion
+ not $ C.intersectVersionRanges lv rv == C.noVersion
 
 -- | Post-condition: no version overlap
 nub' :: [C.Dependency] -> [C.Dependency]
@@ -88,8 +85,9 @@ fromCabalFile cabal desc constraints =
     Left unfound ->
       err $ 
         preposition 
-        "failed to find build targets" "in" "cabal file" cabal unfound
-    Right found  -> 
+        "failed to find build targets" "in" "cabal file" cabal
+        (map ((++) "missing ") unfound)
+    Right found  ->
       let 
         matched_excluded = 
           S.intersection 
@@ -108,10 +106,8 @@ fromCabalFile cabal desc constraints =
         -- Calculate the packages with overlapped ranges 
         let 
             unexcluded = 
-              L.filter (flip S.member matched_excluded . toPkgName) found
+              L.filter (not . flip S.member matched_excluded . toPkgName) found
             sorted     = name_sorted unexcluded -- for readability
-
-            -- TODO doc this behavior
             disjoint   = nub' sorted
             overlapped = sorted L.\\ disjoint 
         
@@ -121,7 +117,6 @@ fromCabalFile cabal desc constraints =
             ("removed the following packages from processing due version" 
             ++ " range overlap:")
             overlapped
-
         return disjoint 
   where
     name_sorted :: [C.Dependency] -> [C.Dependency] 
@@ -170,6 +165,7 @@ readPackages cabal_path constraints = do
         preposition 
           "warnings during parse" "of" "cabal file" "warnings"
           (map show warnings)
+      msg $ "parsing cabal file: " ++ cabal_path
       fromCabalFile cabal_path (toDescription desc) constraints 
    where
     -- Produce a simplified description of the cabal file for processing.

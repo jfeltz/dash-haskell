@@ -1,7 +1,9 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Options where
 import           Data.Monoid
 import qualified Distribution.Package as C
 import           Distribution.Text
+import qualified Distribution.Version as V
 
 import           Options.Applicative.Types (readerAsk, fromM, manyM)
 import           Options.Applicative.Builder
@@ -25,15 +27,6 @@ data Options = Options {
   dbOrdering       :: [Db], 
   packages         :: [C.Dependency]
 } deriving Show
-
-packageReadM :: Text a => ReadM a
-packageReadM = do
-  s <- readerAsk
-  maybe 
-   (readerError $ "failed parsing packages:\n " ++ s)
-   return 
-   -- Qualified, as simpleParse is a little obscure.
-   (Distribution.Text.simpleParse s) 
 
 parser :: Parser Options
 parser = Options <$> 
@@ -64,8 +57,7 @@ parser = Options <$>
   <*>
   switch (long "no-user" <> short 'u' <> help "don't source packages from user db")
   <*>
-  option 
-    fromStr
+  option fp
     (long "db"
     <> metavar "<path-to-package-db>"
     <> value Nothing
@@ -79,11 +71,27 @@ parser = Options <$>
       <> help    "set ordering")
   <*>
   (fromM . manyM $ (
-    argument packageReadM
+    argument dep 
     (metavar "packages" <>
      help "a list of packages to specifically build, e.g. either-1.0.1 text")))
   where
-    fromStr :: ReadM (Maybe FilePath)
-    fromStr = do
+    fp :: ReadM (Maybe FilePath)
+    fp = do
       str' <- str  
       return $ if (L.null str') then Nothing else (Just str')
+
+    versionless :: C.PackageIdentifier -> Bool 
+    versionless p = C.packageVersion p == V.Version [] []
+
+    dep :: ReadM C.Dependency 
+    dep = do
+      pkg_str <- readerAsk
+      case simpleParse pkg_str of 
+        Nothing                  ->
+          readerError $ "failed parsing package: "
+        Just pkg ->
+          return $ 
+            if versionless pkg then
+              C.Dependency (C.packageName pkg) V.anyVersion 
+            else
+              C.thisPackageVersion pkg

@@ -134,7 +134,6 @@ fromOrdering (o:ordering) s =
 
 pipe_Conf :: O.Options -> PipeM C.Dependency Conf ()
 pipe_Conf options = do
-  -- liftIO . putStrLn $ "options ordering: " ++ (show $ O.dbOrdering options)
   index <- lift $ do 
     dbs <-
       (Global:)
