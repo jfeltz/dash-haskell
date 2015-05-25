@@ -4,9 +4,10 @@ import qualified System.Directory as D
 checkPath :: Bool -> FilePath -> String -> IO (Maybe String) 
 checkPath dir path name = do 
   exists <- predicate path 
-  return $ if exists then Nothing else Just $ "missing: " ++ name ++ ' ':msg'
+  return $
+    if exists then Nothing else Just $ "missing: " ++ name ++ ' ':path_type
   where 
-    (predicate, msg') =
+    (predicate, path_type) =
       if dir then (D.doesDirectoryExist, "dir") else (D.doesFileExist, "file")
 
 checkDir :: FilePath -> String -> IO (Maybe String)
