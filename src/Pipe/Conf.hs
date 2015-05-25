@@ -100,14 +100,11 @@ fromIndex dep index =
           interfaceFile' htmlDir' 
           (CI.exposed info)
 
-cabalSandboxConfig :: String
-cabalSandboxConfig = "./cabal.sandbox.config"       
-
 toOptionDbs :: O.Options -> S.Set Db
 toOptionDbs options = 
   S.fromList . catMaybes $ 
     (Path <$> O.db options) 
-    : (Sandbox . fromMaybe cabalSandboxConfig <$> O.sandbox options)
+    : (Sandbox <$> O.sandbox options)
     : [ toMaybe (not $ O.user options) User ]
 
 -- | Produce remaining db's given total ordering of dbs and possibly

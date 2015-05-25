@@ -10,6 +10,10 @@ import           Options.Applicative.Common
 import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
 import           Db
 import           Options.Db
+import qualified Data.List as L
+
+cabalSandboxConfig :: FilePath
+cabalSandboxConfig = "./cabal.sandbox.config"       
 
 data Options = Options { 
   outputDir        :: FilePath,
@@ -17,7 +21,7 @@ data Options = Options {
   cabalFile        :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
   packages         :: [C.Dependency],
-  sandbox          :: Maybe (Maybe FilePath),
+  sandbox          :: Maybe FilePath,
   user             :: Bool,
   db               :: Maybe FilePath,
   dbOrdering       :: [Db] 
@@ -61,26 +65,31 @@ parser = Options <$>
     argument packageReadM (metavar "packages" <>
     help "a list of packages to specifically build, e.g. either-1.0.1 text"))
   <*>
-  option 
-    (Just . Just <$> readerAsk)
+  option
+    fromStr
     (long "sandbox"
-      <> short 's' 
-      <> metavar "<configuration-file-path>"
-      <> value Nothing
-      <> help "package sandbox file")
+     <> short 's'
+     <> value Nothing
+     <> metavar "<configuration-file-path>"
+     <> help "package sandbox file")
   <*>
   switch (long "no-user" <> short 'u' <> help "don't source packages from user db")
   <*>
   option 
-    (Just <$> readerAsk)
-    (long "db" 
-      <> metavar "<path-to-package-db>"
-      <> value Nothing
-      <> help "package db directory")
+    fromStr
+    (long "db"
+    <> metavar "<path-to-package-db>"
+    <> value Nothing
+    <> help "package db directory")
   <*>
   option toOrdering
     (long "ordering"
-      <> short 'o'
-      <> value dbPaths 
+      <> short    'o'
+      <> value    dbPaths 
       <> metavar "ordering=user,sandbox .."
-      <> help "set ordering")
+      <> help    "set ordering")
+  where
+    fromStr :: ReadM (Maybe FilePath)
+    fromStr = do
+      str' <- str  
+      return $ if (L.null str') then Nothing else (Just str')
