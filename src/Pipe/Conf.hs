@@ -1,5 +1,4 @@
 module Pipe.Conf where
--- import Data.String.Util
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.M
@@ -25,6 +24,7 @@ import qualified Data.List as L
 import qualified Data.Set  as S
 import Pipes
 import qualified Module as Ghc
+import Data.String.Util
 
 field :: String -> Parser String
 field str =
@@ -41,15 +41,23 @@ parsedDbPath path = do
   buf <- liftIO $ readFile path
   fromE $ runParser (singleField "package-db") () path buf
 
+cabalSandboxConfig :: FilePath
+cabalSandboxConfig = "./cabal.sandbox.config"       
+
 cabalDb :: Db -> M CC.PackageDB
-cabalDb (Sandbox config) = do
-  check_result <- liftIO $ checkFile config "cabal sandbox config"
-  case check_result of
-    Nothing      -> CC.SpecificPackageDB <$> parsedDbPath config 
-    Just err_str -> err err_str 
-cabalDb (Global   ) = return CC.GlobalPackageDB
-cabalDb (User     ) = return CC.UserPackageDB
-cabalDb (Path    p) = return . CC.SpecificPackageDB $ p
+cabalDb db = 
+  case db of
+    (Global   ) -> return CC.GlobalPackageDB
+    (User     ) -> return CC.UserPackageDB
+    (Dir  p) ->
+      fromCheck =<< liftIO (checkDir p "b") 
+    s@(Sandbox) ->
+      fromCheck =<< liftIO (checkFile cabalSandboxConfig (show s)) 
+  where
+    fromCheck Nothing        =
+      CC.SpecificPackageDB <$> parsedDbPath cabalSandboxConfig 
+    fromCheck (Just err_str) =
+      err err_str 
         
 ghcVersionRange :: CV.VersionRange
 ghcVersionRange = 
@@ -103,9 +111,9 @@ fromIndex dep index =
 toOptionDbs :: O.Options -> S.Set Db
 toOptionDbs options = 
   S.fromList . catMaybes $ 
-    (Path <$> O.db options) 
-    : (Sandbox <$> O.sandbox options)
-    : [ toMaybe (not $ O.user options) User ]
+    (Dir <$> O.db options) 
+    : map (uncurry toMaybe)
+        [ (not $ O.user options, User), (O.sandbox options, Sandbox) ]
 
 -- | Produce remaining db's given total ordering of dbs and possibly
 -- smaller list of dbs.
@@ -114,7 +122,8 @@ fromOrdering []           s =
   if S.null s then
     Right []
   else
-    Left "failed to match package db listing with undefined ordering" 
+    Left $ "failed to match package db(s) with defined ordering, dbs:\n" ++ 
+           (indenting 2 . listing $ S.toList s)
 fromOrdering (o:ordering) s =  
   if not $ S.member o s then 
     fromOrdering ordering s
@@ -125,14 +134,15 @@ fromOrdering (o:ordering) s =
 
 pipe_Conf :: O.Options -> PipeM C.Dependency Conf ()
 pipe_Conf options = do
+  -- liftIO . putStrLn $ "options ordering: " ++ (show $ O.dbOrdering options)
   index <- lift $ do 
     dbs <-
       (Global:)
       <$>
-      fromE (fromOrdering (O.dbOrdering options) $ toOptionDbs options)
+      (fromE . fromOrdering (O.dbOrdering options) $ toOptionDbs options)
     liftIO . putStr $
-      "using package db stack:\n > "
-      ++ L.intercalate "\n > " (map show dbs)
+      "using package db stack:\n"
+      ++ listing (map ((++) " > " . show) dbs)
       ++ "\n\n"
     toIndex =<< mapM cabalDb dbs
   forever $ do

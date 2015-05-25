@@ -1,21 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Haddock.Sqlite where
 import           Control.Monad.IO.Class
 import           Control.Monad.M
-
 import qualified Data.Text as T
 import           Database.SQLite.Simple
 import           Haddock.Artifact
-import qualified Name as Ghc
 import qualified Module as Ghc
-import Distribution.ModuleName
-import Distribution.Text
+import qualified Name as Ghc
 
 data IndexRow = IndexRow {
   nameAttr :: T.Text 
   , typeAttr :: T.Text 
   , pathAttr :: T.Text 
-  ,  modAttr :: T.Text 
+  , modAttr :: T.Text 
 } deriving (Show)
 
 instance Monoid IndexRow where
@@ -25,14 +22,15 @@ instance Monoid IndexRow where
       (mappend (nameAttr l) (nameAttr r))
       (mappend (typeAttr l) (typeAttr r))
       (mappend (pathAttr l) (pathAttr r))
-      (mappend (modAttr l)  (modAttr r))
+      (mappend (modAttr l) (modAttr r))
 
+-- TODO lensify
 instance ToRow IndexRow where
   toRow index = 
-    [  SQLText . nameAttr $ index
+    [SQLText . nameAttr $ index
      , SQLText . typeAttr $ index
      , SQLText . pathAttr $ index
-     , SQLText . modAttr  $ index
+     , SQLText . modAttr $ index
     ]
   
 -- I probably chould derive this from a type, but that's overkill right now.
@@ -47,22 +45,20 @@ createTable conn =
 
 insertRow :: Connection -> IndexRow -> IO ()
 insertRow conn =
-  execute conn
+  execute conn 
     (Query . T.pack $ "INSERT OR IGNORE INTO " ++ table ++ " VALUES (?,?,?,?);")
 
-modStr :: ModuleName -> String 
-modStr = display 
+modUrl :: Ghc.Module -> String
+modUrl = 
+  map (\c-> if c == '.' then '-' else c)
+    . Ghc.moduleNameString 
+    . Ghc.moduleName 
 
-modUrl :: ModuleName -> String
-modUrl = map (\c-> if c == '.' then '-' else c) . modStr 
-
-escapeSpecial :: String -> String
+escapeSpecial :: String -> String 
 escapeSpecial = 
-  concatMap 
-    (\c -> if c `elem` specialChars then '-': show (fromEnum c) ++ "-" else [c])
+  concatMap (\c -> if c `elem` specialChars then '-': show (fromEnum c) ++ "-" else [c])
   where
-    specialChars :: String
-    specialChars = "!&|+$%(,)*<>-/=#^\\?"
+    specialChars :: String = "!&|+$%(,)*<>-/=#^\\?"
  
 -- | Update the sqlite database with the given haddock artifact.
 fromArtifact :: Ghc.PackageKey -> Connection -> Artifact -> M ()
@@ -80,32 +76,30 @@ fromArtifact p conn art = do
     Nothing -> 
       return ()
   where
+    modStr m = Ghc.moduleNameString $ Ghc.moduleName m
     -- | Convert haddock artifacts to attributes for table update.
     toAttributes = 
       case art of 
-       Haddock _              ->
+       Haddock _               ->
          -- TODO unsupported right now 
          return Nothing 
-       Package                ->  
+       Package                 ->  
          return . Just $ 
            (Ghc.packageKeyString p, "Package", "index.html", [])
-       Module mod_name        -> 
+       Module ghcmod           -> 
          return . Just $
-            (modStr mod_name, 
-             "Module" , 
-             modUrl mod_name ++ ".html" ,
-             show mod_name)
-       Function mod' ghc_name -> 
-         let (declType, pfx) = toPair ghc_name in
+            (modStr ghcmod, "Module" , modUrl ghcmod ++ ".html" , modStr ghcmod)
+       Function ghcmod ghcname -> 
+         let (declType, pfx) = toPair ghcname in
            return . Just $ 
-             (modStr mod' ++ '.': Ghc.getOccString ghc_name,
+             ( modStr ghcmod ++ '.':Ghc.getOccString ghcname,
               declType, 
               url pfx,
-              modStr mod')
+              modStr ghcmod)
           where
             url pfx =
-              modUrl mod' ++ ".html#" ++ pfx : ':' : 
-                escapeSpecial (Ghc.getOccString ghc_name)
+              modUrl ghcmod ++ ".html#" ++ pfx : ':' : 
+                escapeSpecial (Ghc.getOccString ghcname)
             toPair n
               | Ghc.isTyConName   n = ("Type"        , 't')
               | Ghc.isDataConName n = ("Constructor" , 'v')

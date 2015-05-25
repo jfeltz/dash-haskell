@@ -1,6 +1,6 @@
 dash-haskell
 ============
-*Never Google for Hackage Results Again* - ian, barnacles.blackfriday
+*Never Google for Hackage Results Again* - [ian, barnacles.blackfriday](https://barnacles.blackfriday/)
 
   **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
@@ -40,23 +40,6 @@ dash-haskell facilitates Haskell documentation in IDE(s) with the following qual
 Summary
 =======
 ```
-  Usage: dash-haskell [-p|--dbprovider <provider,args>] [-o|--output <dir>]
-                      [-q|--quiet] [-c|--cabal <file.cabal>]
-                      [-r|--cabal-constraints executable=name, ..] [packages]
-    additional help is available with "dash-haskell help <topic|option>"
-
-  Available options:
-    -h,--help                Show this help text
-    -p,--dbprovider <provider,args>
-                             a ghc package db provider: cabal|ghc|dir
-    -o,--output <dir>        the directory to write created docsets to
-    -q,--quiet               set to quiet output
-    -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from 
-    -r,--cabal-constraints executable=name, ..
-                             limit package results from a cabal file source, see
-                             documentation
-    packages                 a list of packages to specifically build, e.g.
-                             either-1.0.1 text-1.2.0
 ```
 
 Usage Example
@@ -65,45 +48,6 @@ The following example shows how to use **dash-haskell** to generate
 docsets for a **cabal sandbox project**.
 
 ```
-  $ cd foo-1.2.0/ 
-  $ dash-haskell -c foo.cabal -o docsets 
-  db provider:
-    lookup strategy: cabal sandbox db index
-    cmd: cabal
-    args: sandbox hc-pkg list
-
-  processing: system-filepath-0.4.12
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  processing: system-fileio-0.3.14
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  processing: pipes-4.1.2
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  warning: failed to process: parsec-3.1.5
-  warning: path errors in pkg conf file:
-   /home/jpf/local/cabal-sandboxes/dash-haskell/x86_64-linux-ghc-7.8.3-packages.conf.d/parsec-3.1.5-abf7e89cafe4e74712f678cea843c1c8.conf
-  with problem(s):
-   missing: haddock interface file
-   missing: html doc dir
-
-  processing: sqlite-simple-0.4.8.0
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  $
 
 ```
 
@@ -137,25 +81,9 @@ or
 
 Package Resolution
 ==================
-As a general rule, try to **be version specific** when providing
+For best results, try to **be version specific** when providing
 package arguments, unless you're judicious about which packages are
-stored in your *cabal sandbox* or *ghc package db*. There is a lot of
-hidden behavior that goes into how dash-haskell resolves packages, for
-example, consider the hypothetical package arguments:
-```
-either parsec-1.2 parsec
-```
-This chooses by default:
-
-* ```either``` and ```parsec-1.2``` as the parameter packages. 
-  If for example ```parsec``` were sourced from a cabal file, with ```-c```, 
-  ```parsec-1.2``` would still be chosen instead. 
-* cabal as a package db provider:
-  implicitly calling ```cabal sandbox hc-pkg list```.
-  By convention the first db that provides the unversioned package is chosen.
-* ```either-4.1.0``` and ```parsec-1.2``` are then selected from the package db,
-where their config files are parsed for the documentation sources to be converted. 
-
+stored, for example, in your *cabal sandbox db* or *ghc package db*.
 
 IDE Configuration
 =================

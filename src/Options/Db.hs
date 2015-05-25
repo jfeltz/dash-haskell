@@ -5,14 +5,13 @@ import           Db
 import qualified Options.Applicative.Types as O
 import           Text.ParserCombinators.Parsec
 
--- | TODO global is disallowed, and that
--- needs to be documented.
+-- | TODO global is disallowed, and that needs to be documented.
   
 dbStrings :: [String] 
 dbStrings = ["sandbox", "user", "path"]
 
 dbPaths :: [Db] 
-dbPaths = [Sandbox [], User, Path []]
+dbPaths = [Sandbox, User, Dir []]
         
 fromString :: String -> Db
 fromString str = fromJust . L.lookup str $ zip dbStrings dbPaths 

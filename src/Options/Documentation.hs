@@ -20,7 +20,7 @@ tags = M.keys
 cabalConstraintsTopic, cabalSourcingTopic, providerTopic, outputTopic, packageTopic :: Topic
 cabalConstraintsTopic = 
   Topic "cabal constraints" $
-    L.intercalate "\n" [
+    listing [
       "These are constraints on packages pulled from a cabal file source.",
       "These constraints allow one to simply select subsets of cabal targets to use",
       "and subsets of packages to avoid sourcing.\n",
@@ -37,7 +37,7 @@ cabalConstraintsTopic =
 
 cabalSourcingTopic = 
   Topic "cabal sourcing" $
-    L.intercalate "\n" [
+    listing [
       "This command pulls package selections from a cabal file",
       "  e.g. -c <project.cabal>\n",
       "This by default selects the highest version in the range for a package.\n",
@@ -59,7 +59,7 @@ cabalSourcingTopic =
       ]
 
 providerTopic = Topic "package database provider" $
-  L.intercalate "\n" [
+  listing [
     "The external program to call to produce package databases\n"
     , "options are the form <var,args>" 
     , "e.g:" 
@@ -77,7 +77,7 @@ providerTopic = Topic "package database provider" $
     ]
 
 outputTopic= Topic "output" $ 
- L.intercalate "\n" [
+ listing [
    "The directory root of which to write .docset directories to\n"
    , "For each package sourced by dash-haskell, a matching docset"
    , "will be written to that directory in its full version form, e.g:\n"
@@ -85,13 +85,13 @@ outputTopic= Topic "output" $
  ]
 
 packageTopic= Topic "package" $
- L.intercalate "\n" 
-  ["a ghc package, e.g. either, or either-4.1.0" ,
-  "1. dash-haskell will choose the versioned package if provided", 
-  "both unversioned and versioned",
-  "2. If the package is unversioned it will choose the first as located by",
-  " the package db provider."
-  ]
+  listing
+    ["a ghc package, e.g. either, or either-4.1.0" ,
+    "1. dash-haskell will choose the versioned package if provided", 
+    "both unversioned and versioned",
+    "2. If the package is unversioned it will choose the first as located by",
+    " the package db provider."
+    ]
 
 toEntry :: S.Set String -> Topic -> Documentation -> Documentation 
 toEntry s t doc = L.foldl (\m' k -> M.insert k t m') doc $ S.toList s 
@@ -127,13 +127,12 @@ toHelp d args =
     putStrLn "Sorry, no documentation available for expressions given.\n"
     toHelp docs [] 
   else do
-    putStrLn "accessing help on topics, \n"
-    putStr . L.intercalate "\n" . L.map headed $ S.toList topic_set
-    putStr "\n"
+    putStrLn "accessing help on topics,"
+    putStrLn $ indenting 2 (listing . L.map headed $ S.toList topic_set)
   where 
     headed :: Topic -> String 
-    headed topic = ' ':title topic ++ ':':'\n':'\n': 
-      fromIndent (content topic) 2
+    headed topic =
+      ' ':title topic ++ ':':'\n':'\n': indenting 2 (content topic)
 
     folded :: S.Set Topic -> String -> S.Set Topic
     folded s index = maybe s (`S.insert` s) $ M.lookup index d

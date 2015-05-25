@@ -2,29 +2,40 @@ module Db where
 
 data Db = 
   -- A cabal sandbox db, with optional path to sandbox configuration file  
- Sandbox FilePath
+ Sandbox
   -- The global ghc package database
  | Global                 
   -- The user package database, as defined by cabal 
  | User                   
   -- A direct database path
- | Path FilePath deriving (Ord)
+ | Dir FilePath
  
 instance (Show Db) where
-  show (Sandbox p) = "cabal sandbox db with config file: " ++ p 
-  show (Global   ) = "ghc distribution (global) db" 
-  show (User     ) = "system user db" 
-  show (Path    p) = "db path: " ++ p
+  show (Sandbox) = "cabal sandbox" 
+  show (Global ) = "ghc distribution (global db)" 
+  show (User   ) = "system user" 
+  show (Dir  p) = "db directory: " ++ p
+
+instance (Ord Db) where
+  compare Sandbox Sandbox   = EQ 
+  compare Global  Global    = EQ 
+  compare User    User      = EQ 
+  compare (Dir _) (Dir _) = EQ
+
+  compare (Dir _) Global   = LT 
+  compare (Dir _) User     = LT 
+  compare (Dir _) Sandbox  = LT 
+  compare User Global       = LT 
+  compare User Sandbox      = LT 
+  compare Global Sandbox    = LT 
+
+  -- Just reversing the above for l != r
+  compare Global  (Dir _)  = GT
+  compare User    (Dir _)  = GT
+  compare Sandbox (Dir _)  = GT
+  compare Global  User      = GT
+  compare Sandbox Global    = GT
+  compare Sandbox User      = GT
 
 instance (Eq Db) where
-  (Sandbox _) == (Sandbox _) = True 
-  (Global   ) == (Global   ) = True 
-  (User     ) == (User     ) = True 
-  (Path    _) == (Path    _) = True
-  _           == _           = False 
-
--- instance (Ord Db) where
---   compare (Sandbox _)  (Sandbox _) = EQ 
---   compare (Global  _)  (Global  _) = EQ 
---   compare (User    _)  (User    _) = EQ 
---   compare (Path    _)  (Path    _) = EQ
+  l == r = compare l r == EQ

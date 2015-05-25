@@ -75,7 +75,7 @@ parent = takeDirectory
 stripPrefix :: FilePath -> FilePath -> Either String FilePath 
 stripPrefix prefix path = 
   if L.isPrefixOf prefix path then
-    Right $ L.drop (L.length prefix) path
+    Right $ L.drop (L.length prefix + 1) path
   else 
     Left $ "prefix: " ++ prefix ++ " doesn't agree with:\n  " ++ path
 
@@ -171,8 +171,14 @@ cons_writeFile ::
 cons_writeFile src_root dst_root = forever $ do 
   (path, buf) <- await
   dst_relative_path <- lift . fromE $ stripPrefix src_root path 
+
+  -- liftIO . putStrLn $ "src_root: " ++ show src_root
+  -- liftIO . putStrLn $ "relative path: " ++ show dst_relative_path
+  -- liftIO . putStrLn $ "path: " ++ show path
+
   liftIO $ do 
     let dst_path = dst_root </> dst_relative_path
+    --liftIO . putStrLn $ "dst path: " ++ dst_path
     -- create requisite parent directories for the file at the destination
     D.createDirectoryIfMissing True $ parent dst_path 
     case buf of 
@@ -207,8 +213,6 @@ cons_writeFiles docsets_root = forever $ do
   liftIO . writeFile (dst_root </> "Contents/Info.plist") . unpack . plist . 
     Ghc.packageKeyString . pkg $ conf 
 
-  lift . indentM 2 $ msg "populating database.."
-
   let db_path = dst_root </> "Contents/Resources/docSet.dsidx" 
 
   liftIO $ do
@@ -220,6 +224,8 @@ cons_writeFiles docsets_root = forever $ do
         c <- open db_path 
         createTable c
         return c
+
+  lift . indentM 2 $ msg "populating database.."
 
   -- Populate the SQlite Db 
   liftIO $ execute_ c' "BEGIN;"

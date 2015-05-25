@@ -19,7 +19,7 @@ prod_Dependencies options = do
   if L.null deps then 
     liftIO $ putStrLn "quitting due to no package dependencies evaluated"
   else
-    each . nub' $ deps 
+    each . nub' $ deps
   where
     -- This produces a version disjoint package list from the cabal file.
     cabalDeps :: M [C.Dependency]
@@ -38,10 +38,11 @@ main = do
       -- completed due to either conversion error or user error, should, if
       -- necessary, leave a safe partially -- completed state on the FS that
       -- can be handled by dependant tools, e.g. Emacs helm-dash.
-      putStrLn $ show options
+      -- putStrLn $ show options
 
       runM (newEnv (not . O.quiet $ options)) . runEffect $
-        cons_writeFiles (O.outputDir options) -- writes converted html, haddock, and sql db
+        -- writes converted html, haddock, and sql db
+        cons_writeFiles (O.outputDir options) 
         <-< pipe_Conf options -- yields vetted package configs
         <-< prod_Dependencies options -- produces dependencies from options 
     (_, rest) -> toHelp docs rest

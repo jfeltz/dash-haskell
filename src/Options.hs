@@ -1,10 +1,9 @@
 module Options where
-import           Control.Applicative
 import           Data.Monoid
 import qualified Distribution.Package as C
 import           Distribution.Text
 
-import           Options.Applicative.Types (readerAsk)
+import           Options.Applicative.Types (readerAsk, fromM, manyM)
 import           Options.Applicative.Builder
 import           Options.Applicative.Common
 import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
@@ -12,19 +11,19 @@ import           Db
 import           Options.Db
 import qualified Data.List as L
 
-cabalSandboxConfig :: FilePath
-cabalSandboxConfig = "./cabal.sandbox.config"       
+-- cabalSandboxConfig :: FilePath
+-- cabalSandboxConfig = "./cabal.sandbox.config"       
 
 data Options = Options { 
   outputDir        :: FilePath,
   quiet            :: Bool,
   cabalFile        :: Maybe FilePath,
   cabalConstraints :: CabalConstraints, 
-  packages         :: [C.Dependency],
-  sandbox          :: Maybe FilePath,
+  sandbox          :: Bool, 
   user             :: Bool,
   db               :: Maybe FilePath,
-  dbOrdering       :: [Db] 
+  dbOrdering       :: [Db], 
+  packages         :: [C.Dependency]
 } deriving Show
 
 packageReadM :: Text a => ReadM a
@@ -61,17 +60,7 @@ parser = Options <$>
       <> metavar "executable=name, .."
       <> help "limit package results from a cabal file source, see documentation")
   <*>
-  many (
-    argument packageReadM (metavar "packages" <>
-    help "a list of packages to specifically build, e.g. either-1.0.1 text"))
-  <*>
-  option
-    fromStr
-    (long "sandbox"
-     <> short 's'
-     <> value Nothing
-     <> metavar "<configuration-file-path>"
-     <> help "package sandbox file")
+  switch (long "sandbox" <> short 's' <> help "use cabal sandbox")
   <*>
   switch (long "no-user" <> short 'u' <> help "don't source packages from user db")
   <*>
@@ -84,10 +73,15 @@ parser = Options <$>
   <*>
   option toOrdering
     (long "ordering"
-      <> short    'o'
-      <> value    dbPaths 
+      <> short    'd'
+      <> value    defaultOrdering 
       <> metavar "ordering=user,sandbox .."
       <> help    "set ordering")
+  <*>
+  (fromM . manyM $ (
+    argument packageReadM
+    (metavar "packages" <>
+     help "a list of packages to specifically build, e.g. either-1.0.1 text")))
   where
     fromStr :: ReadM (Maybe FilePath)
     fromStr = do
