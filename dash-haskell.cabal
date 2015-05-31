@@ -35,8 +35,8 @@ description:
   .
   >$ dash-haskell -c foo.cabal -s
   .           
-  builds all packages listed as dependencies in the cabal file using atleast the cabal sandbox db
-  using the default db ordering (global, sandbox, user).
+  builds all packages listed as dependencies in the cabal file, using the
+  default db ordering (global, sandbox, user).
   .
   Note: haddock documentation for the package must first be built prior to calling dash-haskell on it, e.g.
   .
