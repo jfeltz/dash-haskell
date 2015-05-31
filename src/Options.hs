@@ -8,21 +8,18 @@ import qualified Distribution.Version as V
 import           Options.Applicative.Types (readerAsk, fromM, manyM)
 import           Options.Applicative.Builder
 import           Options.Applicative.Common
-import           Options.CabalConstraints (toConstraints, none, CabalConstraints)
+import qualified Text.ParserCombinators.Parsec as P
 import           Db
 import           Options.Db
 import qualified Data.List as L
-
--- cabalSandboxConfig :: FilePath
--- cabalSandboxConfig = "./cabal.sandbox.config"       
 
 data Options = Options { 
   outputDir        :: FilePath,
   quiet            :: Bool,
   cabalFile        :: Maybe FilePath,
-  cabalConstraints :: CabalConstraints, 
+  cabalExclusions  :: [String], 
   sandbox          :: Bool, 
-  user             :: Bool,
+  nouser           :: Bool,
   db               :: Maybe FilePath,
   dbOrdering       :: [Db], 
   packages         :: [C.Dependency]
@@ -46,16 +43,16 @@ parser = Options <$>
     <> value Nothing
     <> help "the cabal file to retrieve package dependencies from")
   <*>
-  option toConstraints
-    (long "cabal-constraints"
-      <> short 'r'
-      <> value none 
-      <> metavar "executable=name, .."
-      <> help "limit package results from a cabal file source, see documentation")
+  option toPackageL
+    (long "cabal-excludes"
+      <> short 'x'
+      <> value []
+      <> metavar "ghc,lens.."
+      <> help "limit package results from a cabal file source")
   <*>
   switch (long "sandbox" <> short 's' <> help "use cabal sandbox")
   <*>
-  switch (long "no-user" <> short 'u' <> help "don't source packages from user db")
+  switch (long "no-user" <> short 'n' <> help "don't source packages from user db")
   <*>
   option fp
     (long "db"
@@ -67,8 +64,8 @@ parser = Options <$>
     (long "ordering"
       <> short    'd'
       <> value    defaultOrdering 
-      <> metavar "ordering=user,sandbox .."
-      <> help    "set ordering")
+      <> metavar "user,sandbox.."
+      <> help    "ordering of user, dir, and sandbox db's")
   <*>
   (fromM . manyM $ (
     argument dep 
@@ -95,3 +92,17 @@ parser = Options <$>
               C.Dependency (C.packageName pkg) V.anyVersion 
             else
               C.thisPackageVersion pkg
+
+toPackageL :: ReadM [String]
+toPackageL = do
+    expr <- readerAsk
+    case P.parse parser' [] expr of 
+      Left err -> readerError . show $ err
+      Right pkgs -> return pkgs 
+    where
+      parser' :: P.Parser [String]
+      parser' =
+        P.sepBy
+          (P.many1 (P.notFollowedBy (P.char ',') >> P.letter))
+          (P.char ',') 
+

@@ -5,10 +5,8 @@ import           Db
 import qualified Options.Applicative.Types as O
 import           Text.ParserCombinators.Parsec
 
--- | TODO global is disallowed, and that needs to be documented.
-  
 dbStrings :: [String] 
-dbStrings = ["sandbox", "user", "path"]
+dbStrings = ["sandbox", "user", "dir"]
 
 dbPaths :: [Db] 
 dbPaths = [Sandbox, User, Dir []]

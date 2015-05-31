@@ -14,7 +14,7 @@ instance (Show Db) where
   show (Sandbox) = "cabal sandbox" 
   show (Global ) = "ghc distribution (global db)" 
   show (User   ) = "system user" 
-  show (Dir  p) = "db directory: " ++ p
+  show (Dir  p)  = "db directory: " ++ p
 
 instance (Ord Db) where
   compare Sandbox Sandbox   = EQ 

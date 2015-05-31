@@ -89,7 +89,7 @@ toIndex stack = do
       "results may not match current supported haddock: " 
       ++ show (CT.disp ghcVersionRange) 
 
-fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe Conf 
+fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe PackageConf 
 fromIndex dep index = 
   let 
     -- For clarity:
@@ -98,12 +98,12 @@ fromIndex dep index =
   in
     listToMaybe . catMaybes . concatMap (map toConf . snd) $ versions 
   where
-    toConf :: CI.InstalledPackageInfo -> Maybe Conf 
+    toConf :: CI.InstalledPackageInfo -> Maybe PackageConf 
     toConf info = do 
       interfaceFile' <- listToMaybe $ CI.haddockInterfaces info
       htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
       return $ 
-        Conf 
+        PackageConf 
           (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
           interfaceFile' htmlDir' 
           (CI.exposed info)
@@ -113,7 +113,7 @@ toOptionDbs options =
   S.fromList . catMaybes $ 
     (Dir <$> O.db options) 
     : map (uncurry toMaybe)
-        [ (not $ O.user options, User), (O.sandbox options, Sandbox) ]
+        [ (not $ O.nouser options, User), (O.sandbox options, Sandbox) ]
 
 -- | Produce remaining db's given total ordering of dbs and possibly
 -- smaller list of dbs.
@@ -132,18 +132,19 @@ fromOrdering (o:ordering) s =
        Nothing -> Left "failed to find matched db in ordering"
        Just e  -> (e :) <$> fromOrdering ordering (S.delete o s)
 
-pipe_Conf :: O.Options -> PipeM C.Dependency Conf ()
-pipe_Conf options = do
+pipe_PackageConf :: O.Options -> PipeM C.Dependency PackageConf ()
+pipe_PackageConf options = do
   index <- lift $ do 
-    dbs <-
+    dbs <- -- Right now the cabal API requires a global db,
+          -- and for that to be first.
       (Global:)
       <$>
-      (fromE . fromOrdering (O.dbOrdering options) $ toOptionDbs options)
+      fromE (fromOrdering (O.dbOrdering options) $ toOptionDbs options)
     liftIO . putStr $
       "using package db stack:\n"
-      ++ listing (map ((++) " > " . show) dbs)
+      ++ (listing $ map ((++) " > " . show) dbs)
       ++ "\n\n"
-    toIndex =<< mapM cabalDb dbs
+    toIndex =<< stackreverse <$> mapM cabalDb dbs
   forever $ do
     dep <- await
     case fromIndex dep index of 
@@ -151,5 +152,18 @@ pipe_Conf options = do
         lift . warning $ 
           "failed to find suitable documentation candidate for package:\n " 
           ++ (show . CT.disp $ dep) 
-      Just conf -> 
+      Just conf -> do
+        strings <- liftIO $ problems conf
+        if L.null strings then
           yield conf
+        else do
+          lift . warning $ 
+            "skipping package: " ++ show (CT.disp dep) ++ ", with conf problems:\n" 
+             ++ indenting 2 (listing strings)
+          return ()
+  where
+    -- | Counter-intuitively,
+    -- Cabal right now actually evaluates the stack from right to left.
+    -- not left to right.. and we still have to preserve the first member
+    -- (Global)
+    stackreverse s = head s : L.reverse (drop 1 s) 

@@ -37,33 +37,54 @@ dash-haskell facilitates Haskell documentation in IDE(s) with the following qual
     [dash docsets](http://kapeli.com/dash) are an open, easily assimilated standard, and
     are used across many IDE(s).
 
-Summary
-=======
-```
-```
+Usage Examples
+==============
+```dash-haskell -c foo.cabal -s```
 
-Usage Example
-=============
-The following example shows how to use **dash-haskell** to generate
-docsets for a **cabal sandbox project**.
+builds all packages listed as dependencies in ```foo.cabal```, using atleast the cabal sandbox db
 
+```dash-haskell parsec-3.1.5 ```
+
+builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, sandbox, user). 
+
+Note: haddock documentation for the package must first be built prior to calling dash-haskell on it, e.g.
 ```
-
-```
-
-Notice, the failure of ```parsec-3.1.5``` is illustrated here to show that
-in this case, dash-haskell depends on **haddock documentation** being built for
-the requested package.
-A possible resolution in this case, if using a sandbox, is:
-
-```
-$ cabal install --reinstall parsec-3.1.5 --enable-documentation
-$ dash-haskell parsec-3.1.5 -o docsets
+$ cabal install --only-dependencies --enable-documentation
 ```
 
 **dash-haskell** tries to be as self-documenting as possible. Please see:
+
+```dash-haskell --help``` and ```dash-haskell help [option|topic]```
+
+Summary
+=======
 ```
-$ dash-haskell help [option|topic]
+dash-haskell v1.1.0.0, a dash docset construction tool for Haskell packages
+
+Usage: dash-haskell [-o|--output <dir>] [-q|--quiet] [-c|--cabal <file.cabal>]
+                    [-x|--cabal-excludes ghc,lens..] [-s|--sandbox]
+                    [-n|--no-user] [--db <path-to-package-db>]
+                    [-d|--ordering user,sandbox..] [packages]
+  additional help is available with "dash-haskell help <topic|option>"
+
+Available options:
+  -h,--help                Show this help text
+  -o,--output <dir>        the directory to write created docsets to
+  -q,--quiet               set to quiet output
+  -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from
+  -x,--cabal-excludes ghc,lens..
+                           limit package results from a cabal file source
+  -s,--sandbox             use cabal sandbox
+  -n,--no-user             don't source packages from user db
+  --db <path-to-package-db>
+                           package db directory
+  -d,--ordering user,sandbox..
+                           ordering of user, dir, and sandbox db's
+  packages                 a list of packages to specifically build, e.g.
+                           either-1.0.1 text
+
+http://www.github.com/jfeltz/dash-haskell (C) John P. Feltz 2014, 2015
+
 ```
 
 Installation
@@ -87,7 +108,7 @@ stored, for example, in your *cabal sandbox db* or *ghc package db*.
 
 IDE Configuration
 =================
-To use the generated docsets , you will need a plugin for your particular IDE which can access
+To use the generated docsets, you will need a plugin for your particular IDE which can access
 them.
 
 * **Emacs**
@@ -122,18 +143,19 @@ them.
 
 Features slated for V2
 ======================
-* handle **docset pre-builts**
+* handle **docset pre-builts and project synchronization**
 
-    set pre-built criteria, pre-built skipping, and provide a ```--rebuild``` to force rebuild of a docset
-
-* **summaries**
-
-    provide summary information to help users better understand which
-    packages failed and succeeded
+  set pre-built criteria, pre-built skipping, project package sync.
+  and provide a ```--rebuild``` to force rebuild of a docset
 
 * **version biasing** 
 
-    provide option to bias package version to highest when it is otherwise ambiguous
+  provide option to bias package version to highest when it is otherwise ambiguous
+
+* **summaries**
+
+  provide summary information to help users better understand which
+  packages failed and succeeded
 
 * ```conf``` argument support 
 

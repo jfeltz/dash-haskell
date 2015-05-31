@@ -20,10 +20,9 @@ env = ask
 warning :: String -> M () 
 warning str = do 
   i <- indention <$> env 
-  liftIO . putStr $ indenting i ("warning: " ++ str)
-
-warningList :: (Show a) => String -> [a] -> M ()
-warningList msg' = warning . listing . (:) msg' . map show 
+  liftIO $ do
+    putStr $ indenting i ("warning: " ++ str)
+    putStr "\n"
 
 indent :: Int -> Env -> Env
 indent amount (Env i v) = Env (i + amount) v

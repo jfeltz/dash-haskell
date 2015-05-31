@@ -1,5 +1,6 @@
 import           Control.Monad.M
 import qualified Data.List as L
+import qualified Data.Set as S
 import qualified Distribution.Package as C
 import qualified Options as O
 import           Options.Applicative
@@ -11,7 +12,6 @@ import           Pipes
 import           System.Environment
     
 -- | This yields requested packages from command line and cabal file, if any.
--- post-condition: no version overlap in returned 
 prod_Dependencies :: O.Options -> ProducerM C.Dependency () 
 prod_Dependencies options = do
   cabal_deps <- lift cabalDeps
@@ -25,25 +25,20 @@ prod_Dependencies options = do
     cabalDeps :: M [C.Dependency]
     cabalDeps =  
       maybe 
-        (return [])
-        (`readPackages` O.cabalConstraints options) $ O.cabalFile options
+        (return []) (`readPackages` (S.fromList $ O.cabalExclusions options)) $
+        O.cabalFile options
 
 main :: IO ()
 main = do 
   args <- getArgs
-  case L.partition (== "help") args of 
+  case L.partition (== "help") args of
     ([], args') -> do
       options <- handleParseResult $ execParserPure (prefs idm) parserInfo args'
-      -- Run the package processing pipeline. Packages that can't be
-      -- completed due to either conversion error or user error, should, if
-      -- necessary, leave a safe partially -- completed state on the FS that
-      -- can be handled by dependant tools, e.g. Emacs helm-dash.
-      -- putStrLn $ show options
 
       runM (newEnv (not . O.quiet $ options)) . runEffect $
         -- writes converted html, haddock, and sql db
         cons_writeFiles (O.outputDir options) 
-        <-< pipe_Conf options -- yields vetted package configs
+        <-< pipe_PackageConf options  -- yields vetted package configs
         <-< prod_Dependencies options -- produces dependencies from options 
     (_, rest) -> toHelp docs rest
   

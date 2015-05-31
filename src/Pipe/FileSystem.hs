@@ -185,7 +185,7 @@ cons_writeFile src_root dst_root = forever $ do
       Nothing   -> D.copyFile path dst_path 
       Just buf' -> writeFile dst_path $ unpack buf'
   
-cons_writeFiles :: FilePath -> ConsumerM Conf ()
+cons_writeFiles :: FilePath -> ConsumerM PackageConf ()
 cons_writeFiles docsets_root = forever $ do
   conf <- await
   
