@@ -4,12 +4,9 @@
 module Pipe.FileSystem where
 import           Control.Monad
 import           Control.Monad.M
-import qualified Data.ByteString as BS
-import           Data.ByteString.Char8 (unpack, pack)
 import qualified Data.List as L
 import           Data.String.Util
 import qualified Data.Text as T
-import           Data.Text.Encoding
 import           Database.SQLite.Simple
 import           System.FilePath
 import           PackageConf
@@ -24,8 +21,8 @@ import qualified Module as Ghc
 
 -- TODO the utility of some of these fields is still unclear to me,
 -- at the moment they are filled simply to satisfy the docset spec.
-plist :: String -> BS.ByteString
-plist str = pack . unlines $
+plist :: String -> String 
+plist str = unlines $
   [ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
   , "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"
   , "<plist version=\"1.0\">"
@@ -142,7 +139,7 @@ convertLink package src tag =
         Right . TagOpen "a" $ ("href", url') : preserved 
 
 pipe_htmlConvert :: 
-  Ghc.PackageKey -> PipeM FilePath (FilePath, Maybe BS.ByteString) ()
+  Ghc.PackageKey -> PipeM FilePath (FilePath, Maybe String) ()
 pipe_htmlConvert p = 
   forever $ do
     src <- await
@@ -150,15 +147,15 @@ pipe_htmlConvert p =
       then  
         yield (src, Nothing)
       else do 
-        buf <- T.pack <$> liftIO (readFile src)
+        buf <- liftIO . readFile $ src
         -- Link conversion errors are non-fatal.
-        case mapM (convertLink p src) . parseTags $ buf of
+        case mapM (convertLink p src) . parseTags $ T.pack buf of
           Left e -> do 
             lift . warning $ 
               preposition "failed to convert links" "for" "file" src [e]
             yield (src, Nothing) 
           Right tags ->
-            yield (src, Just . encodeUtf8 . renderTags $ tags) 
+            yield (src, Just . T.unpack . renderTags $ tags) 
 
 -- | This consumes a doc file and copies it to a path in 'dstRoot'. 
 -- By pre-condition: 
@@ -166,8 +163,7 @@ pipe_htmlConvert p =
 -- By post-condition: 
 --   written dst is the difference of path and src_root,
 --   with by the concatenation of dst_root as it's parent. 
-cons_writeFile :: 
-  FilePath -> FilePath -> ConsumerM (FilePath, Maybe BS.ByteString) () 
+cons_writeFile :: FilePath -> FilePath -> ConsumerM (FilePath, Maybe String) () 
 cons_writeFile src_root dst_root = forever $ do 
   (path, buf) <- await
   dst_relative_path <- lift . fromE $ stripPrefix src_root path 
@@ -183,7 +179,7 @@ cons_writeFile src_root dst_root = forever $ do
     D.createDirectoryIfMissing True $ parent dst_path 
     case buf of 
       Nothing   -> D.copyFile path dst_path 
-      Just buf' -> writeFile dst_path $ unpack buf'
+      Just buf' -> writeFile dst_path buf'
   
 cons_writeFiles :: FilePath -> ConsumerM PackageConf ()
 cons_writeFiles docsets_root = forever $ do
@@ -210,7 +206,7 @@ cons_writeFiles docsets_root = forever $ do
   --    putStrLn "running haddock indexes"
   --    runHaddockIndex (interfaceFile conf) dst_doc_root
   lift . indentM 2 $ msg "writing plist.."
-  liftIO . writeFile (dst_root </> "Contents/Info.plist") . unpack . plist . 
+  liftIO . writeFile (dst_root </> "Contents/Info.plist") . plist . 
     Ghc.packageKeyString . pkg $ conf 
 
   let db_path = dst_root </> "Contents/Resources/docSet.dsidx" 

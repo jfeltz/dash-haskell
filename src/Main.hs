@@ -45,6 +45,6 @@ main = do
   where 
    parserInfo :: ParserInfo O.Options
    parserInfo = info (helper <*> O.parser)  $
-     header "dash-haskell v1.1.0.0, a dash docset construction tool for Haskell packages"
+     header "dash-haskell v1.1.0.1, a dash docset construction tool for Haskell packages"
      <> progDesc "additional help is available with \"dash-haskell help <topic|option>\""
      <> footer "http://www.github.com/jfeltz/dash-haskell (C) John P. Feltz 2014, 2015"

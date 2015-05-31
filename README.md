@@ -45,7 +45,7 @@ builds all packages listed as dependencies in ```foo.cabal```, using atleast the
 
 ```dash-haskell parsec-3.1.5 ```
 
-builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, sandbox, user). 
+builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, user). 
 
 Note: haddock documentation for the package must first be built prior to calling dash-haskell on it, e.g.
 ```
@@ -59,7 +59,7 @@ $ cabal install --only-dependencies --enable-documentation
 Summary
 =======
 ```
-dash-haskell v1.1.0.0, a dash docset construction tool for Haskell packages
+dash-haskell v1.1.0.1, a dash docset construction tool for Haskell packages
 
 Usage: dash-haskell [-o|--output <dir>] [-q|--quiet] [-c|--cabal <file.cabal>]
                     [-x|--cabal-excludes ghc,lens..] [-s|--sandbox]
