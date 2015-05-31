@@ -1,9 +1,12 @@
 module PackageId where
-import qualified Distribution.Package as C
-import qualified Distribution.Version as CV
+import Distribution.Package
+import Distribution.Version
 
-emptyVersion :: CV.Version
-emptyVersion = CV.Version [] []
+emptyVersion :: Version
+emptyVersion = Version [] []
               
-unversioned :: C.PackageId -> C.PackageId
-unversioned p = p { C.pkgVersion = emptyVersion } 
+unversioned :: PackageId -> PackageId
+unversioned p = p { pkgVersion = emptyVersion } 
+
+versionless :: String -> PackageId
+versionless n = PackageIdentifier (PackageName n) emptyVersion 

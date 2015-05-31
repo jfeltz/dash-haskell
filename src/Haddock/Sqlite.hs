@@ -2,7 +2,6 @@
 module Haddock.Sqlite where
 import           Control.Monad.IO.Class
 import           Control.Monad.M
-import           Data.Monoid
 import qualified Data.Text as T
 import           Database.SQLite.Simple
 import           Haddock.Artifact

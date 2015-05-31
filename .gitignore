@@ -15,3 +15,11 @@ cabal.config
 *.prof
 *.aux
 *.hp
+docsets/
+src/Test
+third-party/
+tests/
+settings.el
+TAGS
+rebuild-sandbox.sh
+.projectile

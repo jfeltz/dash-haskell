@@ -1,6 +1,6 @@
 dash-haskell
 ============
-**local and approximate package docs for your Haskell project dependencies**
+*Never Google for Hackage Results Again* - [ian, barnacles.blackfriday](https://barnacles.blackfriday/)
 
   **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
@@ -37,89 +37,54 @@ dash-haskell facilitates Haskell documentation in IDE(s) with the following qual
     [dash docsets](http://kapeli.com/dash) are an open, easily assimilated standard, and
     are used across many IDE(s).
 
-Summary
-=======
+Usage Examples
+==============
+```dash-haskell -c foo.cabal -s```
+
+builds all packages listed as dependencies in ```foo.cabal```, using atleast the cabal sandbox db
+
+```dash-haskell parsec-3.1.5 ```
+
+builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, sandbox, user). 
+
+Note: haddock documentation for the package must first be built prior to calling dash-haskell on it, e.g.
 ```
-  Usage: dash-haskell [-p|--dbprovider <provider,args>] [-o|--output <dir>]
-                      [-q|--quiet] [-c|--cabal <file.cabal>]
-                      [-r|--cabal-constraints executable=name, ..] [packages]
-    additional help is available with "dash-haskell help <topic|option>"
-
-  Available options:
-    -h,--help                Show this help text
-    -p,--dbprovider <provider,args>
-                             a ghc package db provider: cabal|ghc|dir
-    -o,--output <dir>        the directory to write created docsets to
-    -q,--quiet               set to quiet output
-    -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from 
-    -r,--cabal-constraints executable=name, ..
-                             limit package results from a cabal file source, see
-                             documentation
-    packages                 a list of packages to specifically build, e.g.
-                             either-1.0.1 text-1.2.0
-```
-
-Usage Example
-=============
-The following example shows how to use **dash-haskell** to generate
-docsets for a **cabal sandbox project**.
-
-```
-  $ cd foo-1.2.0/ 
-  $ dash-haskell -c foo.cabal -o docsets 
-  db provider:
-    lookup strategy: cabal sandbox db index
-    cmd: cabal
-    args: sandbox hc-pkg list
-
-  processing: system-filepath-0.4.12
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  processing: system-fileio-0.3.14
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  processing: pipes-4.1.2
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  warning: failed to process: parsec-3.1.5
-  warning: path errors in pkg conf file:
-   /home/jpf/local/cabal-sandboxes/dash-haskell/x86_64-linux-ghc-7.8.3-packages.conf.d/parsec-3.1.5-abf7e89cafe4e74712f678cea843c1c8.conf
-  with problem(s):
-   missing: haddock interface file
-   missing: html doc dir
-
-  processing: sqlite-simple-0.4.8.0
-    writing files..
-    writing plist..
-    populating database..
-    finished populating sqlite database..
-
-  $
-
-```
-
-Notice, the failure of ```parsec-3.1.5``` is illustrated here to show that
-in this case, dash-haskell depends on **haddock documentation** being built for
-the requested package.
-A possible resolution in this case, if using a sandbox, is:
-
-```
-$ cabal install --reinstall parsec-3.1.5 --enable-documentation
-$ dash-haskell parsec-3.1.5 -o docsets
+$ cabal install --only-dependencies --enable-documentation
 ```
 
 **dash-haskell** tries to be as self-documenting as possible. Please see:
+
+```dash-haskell --help``` and ```dash-haskell help [option|topic]```
+
+Summary
+=======
 ```
-$ dash-haskell help [option|topic]
+dash-haskell v1.1.0.0, a dash docset construction tool for Haskell packages
+
+Usage: dash-haskell [-o|--output <dir>] [-q|--quiet] [-c|--cabal <file.cabal>]
+                    [-x|--cabal-excludes ghc,lens..] [-s|--sandbox]
+                    [-n|--no-user] [--db <path-to-package-db>]
+                    [-d|--ordering user,sandbox..] [packages]
+  additional help is available with "dash-haskell help <topic|option>"
+
+Available options:
+  -h,--help                Show this help text
+  -o,--output <dir>        the directory to write created docsets to
+  -q,--quiet               set to quiet output
+  -c,--cabal <file.cabal>  the cabal file to retrieve package dependencies from
+  -x,--cabal-excludes ghc,lens..
+                           limit package results from a cabal file source
+  -s,--sandbox             use cabal sandbox
+  -n,--no-user             don't source packages from user db
+  --db <path-to-package-db>
+                           package db directory
+  -d,--ordering user,sandbox..
+                           ordering of user, dir, and sandbox db's
+  packages                 a list of packages to specifically build, e.g.
+                           either-1.0.1 text
+
+http://www.github.com/jfeltz/dash-haskell (C) John P. Feltz 2014, 2015
+
 ```
 
 Installation
@@ -137,26 +102,13 @@ or
 
 Package Resolution
 ==================
-When dependency sourcing from a cabal file, dash-haskell does not (yet) select versioned packages from the build-dependency version bounds, only the package names. As a general rule, try to **be version specific** when providing package arguments, unless you're judicious about which packages are stored in your *cabal sandbox* or *ghc package db*. There is a lot of hidden behavior that goes into how dash-haskell resolves packages, 
-for example, consider the hypothetical package arguments:
-```
-$ dash-haskell either parsec-1.2 parsec
-```
-This chooses by default:
-
-* ```either``` and ```parsec-1.2``` as the parameter packages. 
-  If for example ```parsec``` were sourced from a cabal file, with ```-c```, 
-  ```parsec-1.2``` would still be chosen instead. 
-* cabal as a package db provider:
-  implicitly calling ```cabal sandbox hc-pkg list```.
-  By convention the first db that provides the unversioned package is chosen.
-* ```either-4.1.0``` and ```parsec-1.2``` are then selected from the package db,
-where their config files are parsed for the documentation sources to be converted. 
-
+For best results, try to **be version specific** when providing
+package arguments, unless you're judicious about which packages are
+stored, for example, in your *cabal sandbox db* or *ghc package db*.
 
 IDE Configuration
 =================
-To use the generated docsets , you will need a plugin for your particular IDE which can access
+To use the generated docsets, you will need a plugin for your particular IDE which can access
 them.
 
 * **Emacs**
@@ -191,18 +143,19 @@ them.
 
 Features slated for V2
 ======================
-* handle **docset pre-builts**
+* handle **docset pre-builts and project synchronization**
 
-    set pre-built criteria, pre-built skipping, and provide a ```--rebuild``` to force rebuild of a docset
-
-* **summaries**
-
-    provide summary information to help users better understand which
-    packages failed and succeeded
+  set pre-built criteria, pre-built skipping, project package sync.
+  and provide a ```--rebuild``` to force rebuild of a docset
 
 * **version biasing** 
 
-    provide option to bias package version to highest when it is otherwise ambiguous
+  provide option to bias package version to highest when it is otherwise ambiguous
+
+* **summaries**
+
+  provide summary information to help users better understand which
+  packages failed and succeeded
 
 * ```conf``` argument support 
 
