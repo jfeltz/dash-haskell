@@ -1,5 +1,5 @@
 name:                dash-haskell
-version:             1.1.0.1
+version:             1.1.0.2
 synopsis:            Convert package Haddock to Dash docsets (IDE docs)
 homepage:            http://www.github.com/jfeltz/dash-haskell
 Bug-reports:         https://github.com/jfeltz/dash-haskell/issues
@@ -7,13 +7,13 @@ license:             LGPL-3
 license-file:        LICENSE
 author:              John P. Feltz
 maintainer:          jfeltz@gmail.com
-copyright:           (c) 2014, 2015 John P. Feltz 
+copyright:           (c) 2014, 2015 John P. Feltz
 category:            Documentation
 build-type:          Simple
 cabal-version:       >= 1.22
-extra-source-files:  README.md 
+extra-source-files:  README.md
 
-description: 
+description:
   A Dash.app docset is a file-layout for allowing easy lookup and
   indexing of programming docs, e.g. API functions and modules. A
   number of plugins offer docset lookup in editors such as Emacs and
@@ -34,7 +34,7 @@ description:
   >./docsets/parsec-3.1.5.docset
   .
   >$ dash-haskell -c foo.cabal -s
-  .           
+  .
   builds all packages listed as dependencies in the cabal file, using the
   default db ordering (global, sandbox, user).
   .
@@ -44,7 +44,7 @@ description:
   .
   Versions:
   .
-  The version numbering scheme for this package is defined as follows, given: 
+  The version numbering scheme for this package is defined as follows, given:
   .
   >dash-haskell-a.b.c.d
   .

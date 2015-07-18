@@ -26,7 +26,8 @@ data Options = Options {
 } deriving Show
 
 parser :: Parser Options
-parser = Options <$> 
+parser =
+  Options <$> 
   (strOption $ 
     long "output" 
     <> short 'o'

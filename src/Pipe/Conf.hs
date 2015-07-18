@@ -3,7 +3,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.M
 import PackageConf
-import FilePath       
+import FilePath
 import Text.ParserCombinators.Parsec hiding (State)
 import qualified Distribution.InstalledPackageInfo   as CI
 import qualified Distribution.Simple.Compiler        as CC
@@ -28,90 +28,95 @@ import Data.String.Util
 
 field :: String -> Parser String
 field str =
-  string str 
+  string str
   >> char ':'
-  >> many (char ' ') 
+  >> many (char ' ')
   >> manyTill anyToken (void (char '\n') <|> eof)
 
-singleField :: String -> Parser String 
-singleField str = try (field str) <|> (anyToken >> singleField str) 
- 
-parsedDbPath :: String -> M String 
+singleField :: String -> Parser String
+singleField str = try (field str) <|> (anyToken >> singleField str)
+
+parsedDbPath :: String -> M String
 parsedDbPath path = do
   buf <- liftIO $ readFile path
   fromE $ runParser (singleField "package-db") () path buf
 
 cabalSandboxConfig :: FilePath
-cabalSandboxConfig = "./cabal.sandbox.config"       
+cabalSandboxConfig = "./cabal.sandbox.config"
 
 cabalDb :: Db -> M CC.PackageDB
-cabalDb db = 
+cabalDb db =
   case db of
-    (Global   ) -> return CC.GlobalPackageDB
-    (User     ) -> return CC.UserPackageDB
-    (Dir  p) ->
-      fromCheck =<< liftIO (checkDir p "b") 
-    s@(Sandbox) ->
-      fromCheck =<< liftIO (checkFile cabalSandboxConfig (show s)) 
-  where
-    fromCheck Nothing        =
-      CC.SpecificPackageDB <$> parsedDbPath cabalSandboxConfig 
-    fromCheck (Just err_str) =
-      err err_str 
-        
-ghcVersionRange :: CV.VersionRange
-ghcVersionRange = 
- CV.intersectVersionRanges 
-   (CV.orLaterVersion (CV.Version [7,10]   [])) 
-   (CV.earlierVersion (CV.Version [7,10,2] [])) 
+    (Global ) -> return CC.GlobalPackageDB
+    (User   ) -> return CC.UserPackageDB
+    (Dir  p ) -> do
+      fromCheck p =<< liftIO (checkDir p "package-db")
+    s@(Sandbox) -> do
+      result <- liftIO $ checkFile cabalSandboxConfig (show s)
+      case result of
+        Nothing -> do
+          db'    <- parsedDbPath cabalSandboxConfig
+          fromCheck db' =<< liftIO (checkDir db' "sandbox package-db")
+        Just error_str ->
+          err error_str
+   where
+     fromCheck :: FilePath -> Maybe String -> M CC.PackageDB
+     fromCheck path Nothing          = return $ CC.SpecificPackageDB path
+     fromCheck _    (Just error_str) = err error_str
 
-toIndex :: [CC.PackageDB] -> M CI.InstalledPackageIndex 
-toIndex stack = do 
+ghcVersionRange :: CV.VersionRange
+ghcVersionRange =
+ CV.intersectVersionRanges
+   (CV.orLaterVersion (CV.Version [7,10]   []))
+   (CV.earlierVersion (CV.Version [7,10,2] []))
+
+toIndex :: [CC.PackageDB] -> M CI.InstalledPackageIndex
+toIndex stack = do
   version <- liftIO $ CP.programFindVersion CP.ghcPkgProgram CVB.normal "ghc-pkg"
   case version of
     Nothing ->
       warning $
         "unable to determine ghc-pkg version, \n" ++ clause
     Just v ->
-      unless (CV.withinRange v ghcVersionRange) $ 
+      unless (CV.withinRange v ghcVersionRange) $
         warning $
           "ghc-pkg version: "
           ++ show (CT.disp v) ++ " not within allowable range,\n"
           ++ clause
   liftIO $ do
-    minimal_programs <- CP.configureAllKnownPrograms CVB.normal $ 
+    minimal_programs <- CP.configureAllKnownPrograms CVB.normal $
       CP.restoreProgramDb [CP.ghcPkgProgram, CP.ghcProgram] CP.emptyProgramDb
 
     CG.getInstalledPackages CVB.silent stack minimal_programs
   where
     clause :: String
-    clause = 
-      "results may not match current supported haddock: " 
-      ++ show (CT.disp ghcVersionRange) 
+    clause =
+      "results may not match current supported haddock: "
+      ++ show (CT.disp ghcVersionRange)
 
-fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe PackageConf 
-fromIndex dep index = 
-  let 
+fromIndex :: C.Dependency -> CI.InstalledPackageIndex -> Maybe PackageConf
+fromIndex dep index =
+  let
     -- For clarity:
     versions :: [(CV.Version, [CI.InstalledPackageInfo])]
     versions = CI.lookupDependency index dep
   in
-    listToMaybe . catMaybes . concatMap (map toConf . snd) $ versions 
+    listToMaybe . catMaybes . concatMap (map toConf . snd) $ versions
   where
-    toConf :: CI.InstalledPackageInfo -> Maybe PackageConf 
-    toConf info = do 
+    toConf :: CI.InstalledPackageInfo -> Maybe PackageConf
+    toConf info = do
       interfaceFile' <- listToMaybe $ CI.haddockInterfaces info
       htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
-      return $ 
-        PackageConf 
+      return $
+        PackageConf
           (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
-          interfaceFile' htmlDir' 
+          interfaceFile' htmlDir'
           (CI.exposed info)
 
 toOptionDbs :: O.Options -> S.Set Db
-toOptionDbs options = 
-  S.fromList . catMaybes $ 
-    (Dir <$> O.db options) 
+toOptionDbs options =
+  S.fromList . catMaybes $
+    (Dir <$> O.db options)
     : map (uncurry toMaybe)
         [ (not $ O.nouser options, User), (O.sandbox options, Sandbox) ]
 
@@ -122,10 +127,10 @@ fromOrdering []           s =
   if S.null s then
     Right []
   else
-    Left $ "failed to match package db(s) with defined ordering, dbs:\n" ++ 
+    Left $ "failed to match package db(s) with defined ordering, dbs:\n" ++
            (indenting 2 . listing $ S.toList s)
-fromOrdering (o:ordering) s =  
-  if not $ S.member o s then 
+fromOrdering (o:ordering) s =
+  if not $ S.member o s then
     fromOrdering ordering s
   else
     case L.find (o ==) (S.elems s) of
@@ -134,7 +139,7 @@ fromOrdering (o:ordering) s =
 
 pipe_PackageConf :: O.Options -> PipeM C.Dependency PackageConf ()
 pipe_PackageConf options = do
-  index <- lift $ do 
+  index <- lift $ do
     dbs <- -- Right now the cabal API requires a global db,
           -- and for that to be first.
       (Global:)
@@ -147,18 +152,18 @@ pipe_PackageConf options = do
     toIndex =<< stackreverse <$> mapM cabalDb dbs
   forever $ do
     dep <- await
-    case fromIndex dep index of 
-      Nothing -> 
-        lift . warning $ 
-          "failed to find suitable documentation candidate for package:\n " 
-          ++ (show . CT.disp $ dep) 
+    case fromIndex dep index of
+      Nothing ->
+        lift . warning $
+          "failed to find suitable documentation candidate for package:\n "
+          ++ (show . CT.disp $ dep)
       Just conf -> do
         strings <- liftIO $ problems conf
         if L.null strings then
           yield conf
         else do
-          lift . warning $ 
-            "skipping package: " ++ show (CT.disp dep) ++ ", with conf problems:\n" 
+          lift . warning $
+            "skipping package: " ++ show (CT.disp dep) ++ ", with conf problems:\n"
              ++ indenting 2 (listing strings)
           return ()
   where
@@ -166,4 +171,4 @@ pipe_PackageConf options = do
     -- Cabal right now actually evaluates the stack from right to left.
     -- not left to right.. and we still have to preserve the first member
     -- (Global)
-    stackreverse s = head s : L.reverse (drop 1 s) 
+    stackreverse s = head s : L.reverse (drop 1 s)

@@ -4,19 +4,19 @@ dash-haskell
 
   **direct to browser lookup:**
   ![look-up](/img/lookup.png?raw=true)
- 
+
 
   **keyword, module, and package searching:**
   ![listing](/img/listing.png?raw=true)
 
 dash-haskell facilitates Haskell documentation in IDE(s) with the following qualities:
-  
+
   * **Local**
 
     Documentation is stored in [dash](http://kapeli.com/dash) docsets on the filesystem,
     avoiding the need to query **often inaccurate, version lagged** information from a remote resource such as *hackage*,
     *hoogle*, or *hayoo*.
-    
+
   * **Resolved from Project Dependencies**
 
     With dash-haskell, one can build dash docsets from:
@@ -25,14 +25,14 @@ dash-haskell facilitates Haskell documentation in IDE(s) with the following qual
      * an arbitrary package db
 
   * **Scope Narrowed**
-    
+
     IDE plugins such as [helm-dash](https://github.com/areina/helm-dash)
     allow for only specific docsets to be active. This means that
     when searching for an identifier, e.g. *fromJust*, only the
     packages you've built in your configuration are searched. Searches
     can then be further narrowed by module etc.
 
-  * **Prolifically Standardized** 
+  * **Prolifically Standardized**
 
     [dash docsets](http://kapeli.com/dash) are an open, easily assimilated standard, and
     are used across many IDE(s).
@@ -45,7 +45,7 @@ builds all packages listed as dependencies in ```foo.cabal```, using atleast the
 
 ```dash-haskell parsec-3.1.5 ```
 
-builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, user). 
+builds ```docsets/parsec-3.1.5.docset``` using the default db ordering (global, user).
 
 Note: haddock documentation for the package must first be built prior to calling dash-haskell on it, e.g.
 ```
@@ -59,7 +59,7 @@ $ cabal install --only-dependencies --enable-documentation
 Summary
 =======
 ```
-dash-haskell v1.1.0.1, a dash docset construction tool for Haskell packages
+dash-haskell v1.1.0.2, a dash docset construction tool for Haskell packages
 
 Usage: dash-haskell [-o|--output <dir>] [-q|--quiet] [-c|--cabal <file.cabal>]
                     [-x|--cabal-excludes ghc,lens..] [-s|--sandbox]
@@ -97,7 +97,7 @@ or
 ```
  $ git clone http://www.github.com/jfeltz/dash-haskell
  $ cd dash-haskell
- $ cabal install 
+ $ cabal install
 ```
 
 Package Resolution
@@ -118,16 +118,16 @@ them.
   * [helm](https://github.com/emacs-helm/helm) , a fuzzy finder plugin for emacs
   * [helm-dash](https://github.com/areina/helm-dash) , the essential extension to helm in order to lookup dash docsets
 
-  For limiting helm-dash to project specific docsets, the following also helps. 
+  For limiting helm-dash to project specific docsets, the following also helps.
 
   ```lisp
-(defun activate-package-docsets (root) 
+(defun activate-package-docsets (root)
   (progn
-     (setq helm-dash-docsets-path root) 
+     (setq helm-dash-docsets-path root)
      (setq helm-dash-common-docsets (helm-dash-installed-docsets))
-      
-     (message 
-      (format "activated %d docsets from: %s" 
+
+     (message
+      (format "activated %d docsets from: %s"
         (length helm-dash-common-docsets) root))
   ))
   ```
@@ -148,7 +148,7 @@ Features slated for V2
   set pre-built criteria, pre-built skipping, project package sync.
   and provide a ```--rebuild``` to force rebuild of a docset
 
-* **version biasing** 
+* **version biasing**
 
   provide option to bias package version to highest when it is otherwise ambiguous
 
@@ -157,13 +157,13 @@ Features slated for V2
   provide summary information to help users better understand which
   packages failed and succeeded
 
-* ```conf``` argument support 
+* ```conf``` argument support
 
-    build docset directly from a package db .conf 
+    build docset directly from a package db .conf
 
-* ```doc``` argument 
+* ```doc``` argument
 
-    build docsets directly from a package doc directory 
+    build docsets directly from a package doc directory
     (containing the requisite ```*.haddock``` interface and html files)
 
 Contributors
