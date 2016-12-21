@@ -99,6 +99,13 @@ or
  $ cd dash-haskell
  $ cabal install
 ```
+or (to install with [stack](https://www.haskellstack.org) - places an executable
+in `~/.local/bin`)
+```
+ $ git clone http://www.github.com/jfeltz/dash-haskell
+ $ cd dash-haskell
+ $ stack install
+```
 
 Package Resolution
 ==================
