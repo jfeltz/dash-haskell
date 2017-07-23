@@ -11,30 +11,30 @@ import qualified Name as Ghc
 
 data Artifact
   = Haddock  FilePath -- Note, this is not yet honored. TODO
-  | Package  
+  | Package
   | Module   Ghc.Module
   | Function Ghc.Module Ghc.Name
 
 parseError :: String -> FilePath -> M r
-parseError e p = 
+parseError e p =
   err $ preposition "parser error" "in" "haddock interface" p [e]
 
-fromInterfaces :: Ghc.PackageKey -> [InstalledInterface] -> [Artifact]
-fromInterfaces _   []       = []  
+fromInterfaces :: Ghc.UnitId -> [InstalledInterface] -> [Artifact]
+fromInterfaces _   []       = []
 fromInterfaces pkg (i:rest) =
    let moduleName = instMod i in
-     if OptHide `notElem` instOptions i then 
-      Module moduleName : 
-       foldl 
+     if OptHide `notElem` instOptions i then
+      Module moduleName :
+       foldl
          (\a e -> Function moduleName e : a)
          -- append to artifacts from rest of installed interfaces
-         (fromInterfaces pkg rest) 
+         (fromInterfaces pkg rest)
          (instVisibleExports i)
      else
-       fromInterfaces pkg rest 
-   
-toArtifacts :: Ghc.PackageKey -> FilePath -> M [Artifact]
-toArtifacts pkg haddock' = do 
+       fromInterfaces pkg rest
+
+toArtifacts :: Ghc.UnitId -> FilePath -> M [Artifact]
+toArtifacts pkg haddock' = do
   interface_file <- liftIO $ readInterfaceFile freshNameCache haddock'
   case interface_file of
     Left e -> parseError e haddock'

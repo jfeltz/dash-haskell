@@ -1,10 +1,10 @@
 module PackageConf where
 import qualified Module as Ghc
-import FilePath 
-import Data.Maybe (catMaybes) 
+import FilePath
+import Data.Maybe (catMaybes)
 
 data PackageConf = PackageConf
-  { pkg           :: Ghc.PackageKey
+  { pkg           :: Ghc.UnitId
   , interfaceFile :: FilePath -- interface, i.e. .haddock file
   , htmlDir       :: FilePath -- root html source directory
   , exposed       :: Bool     -- module exposure flag
@@ -13,6 +13,6 @@ data PackageConf = PackageConf
 problems :: PackageConf -> IO [String]
 problems conf =
   catMaybes <$> sequence [
-    checkDir (htmlDir conf) "haddock html" 
-    , checkFile (interfaceFile conf) "haddock interface" 
+    checkDir (htmlDir conf) "haddock html"
+    , checkFile (interfaceFile conf) "haddock interface"
     ]

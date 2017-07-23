@@ -68,7 +68,7 @@ ghcVersionRange :: CV.VersionRange
 ghcVersionRange =
  CV.intersectVersionRanges
    (CV.orLaterVersion (CV.Version [7,10]   []))
-   (CV.earlierVersion (CV.Version [7,10,2] []))
+   (CV.earlierVersion (CV.Version [8,0,2,1] []))
 
 toIndex :: [CC.PackageDB] -> M CI.InstalledPackageIndex
 toIndex stack = do
@@ -84,10 +84,9 @@ toIndex stack = do
           ++ show (CT.disp v) ++ " not within allowable range,\n"
           ++ clause
   liftIO $ do
-    minimal_programs <- CP.configureAllKnownPrograms CVB.normal $
-      CP.restoreProgramDb [CP.ghcPkgProgram, CP.ghcProgram] CP.emptyProgramDb
+    (compiler, _, conf) <- CG.configure CVB.normal Nothing Nothing CP.defaultProgramConfiguration
 
-    CG.getInstalledPackages CVB.silent stack minimal_programs
+    CG.getInstalledPackages CVB.silent compiler stack conf
   where
     clause :: String
     clause =
@@ -109,7 +108,7 @@ fromIndex dep index =
       htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
       return $
         PackageConf
-          (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
+          (Ghc.stringToUnitId . show . CT.disp $ CI.sourcePackageId info)
           interfaceFile' htmlDir'
           (CI.exposed info)
 

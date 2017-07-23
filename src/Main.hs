@@ -1,4 +1,5 @@
 import           Control.Monad.M
+import Data.Monoid ((<>))
 import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Distribution.Package as C
