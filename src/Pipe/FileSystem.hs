@@ -41,8 +41,8 @@ plist str = unlines $
   , "</plist>"
   ]
 
-docsetDir :: Ghc.PackageKey -> FilePath
-docsetDir k = Ghc.packageKeyString k ++ ".docset" 
+docsetDir :: Ghc.UnitId -> FilePath
+docsetDir k = Ghc.unitIdString k ++ ".docset"
 
 leafs :: (FilePath -> Bool) -> FilePath -> ProducerM FilePath ()
 leafs incPred p = do
@@ -89,10 +89,10 @@ toRelativePath base path = do
        . length 
        . splitPath <$> stripPrefix pfx base 
 
-relativize :: Ghc.PackageKey -> FilePath -> Either String T.Text 
+relativize :: Ghc.UnitId -> FilePath -> Either String T.Text
 relativize package p = 
   let filename'      = takeFileName p
-      packageSubpath = Ghc.packageKeyString package
+      packageSubpath = Ghc.unitIdString package
       matches        = 
         filter (packageSubpath ==) . reverse $ splitPath (parent p)
   in 
@@ -102,7 +102,7 @@ relativize package p =
       else -- assume as a package doc file and make relative
         toRelativePath packageSubpath $ L.head matches </> filename'
 
-convertUrl ::  Ghc.PackageKey -> T.Text -> Either String T.Text 
+convertUrl ::  Ghc.UnitId -> T.Text -> Either String T.Text
 convertUrl p urlExp 
   | T.null urlExp = Right T.empty
   | otherwise     =  
@@ -122,7 +122,7 @@ attributes src other            =
     ++ show other  ++ "\n in: \n" ++ src 
     
 -- | Convert local package-compiled haddock links to local relative. 
-convertLink :: Ghc.PackageKey -> FilePath -> Tag' -> Either String Tag'
+convertLink :: Ghc.UnitId -> FilePath -> Tag' -> Either String Tag'
 convertLink package src tag =
   -- We're only interested in processing links             
   if not $ tagOpenLit "a" (anyAttrNameLit "href") tag then  
@@ -139,7 +139,7 @@ convertLink package src tag =
         Right . TagOpen "a" $ ("href", url') : preserved 
 
 pipe_htmlConvert :: 
-  Ghc.PackageKey -> PipeM FilePath (FilePath, Maybe String) ()
+  Ghc.UnitId -> PipeM FilePath (FilePath, Maybe String) ()
 pipe_htmlConvert p = 
   forever $ do
     src <- await
@@ -185,7 +185,7 @@ cons_writeFiles :: FilePath -> ConsumerM PackageConf ()
 cons_writeFiles docsets_root = forever $ do
   conf <- await
   
-  lift . msg $ "processing: " ++ (Ghc.packageKeyString . pkg $ conf)
+  lift . msg $ "processing: " ++ (Ghc.unitIdString . pkg $ conf)
   let docset_folder = docsetDir (pkg conf) 
       dst_root      = docsets_root </> docset_folder 
       dst_doc_root  = dst_root </> "Contents/Resources/Documents/"
@@ -207,7 +207,7 @@ cons_writeFiles docsets_root = forever $ do
   --    runHaddockIndex (interfaceFile conf) dst_doc_root
   lift . indentM 2 $ msg "writing plist.."
   liftIO . writeFile (dst_root </> "Contents/Info.plist") . plist . 
-    Ghc.packageKeyString . pkg $ conf 
+    Ghc.unitIdString . pkg $ conf
 
   let db_path = dst_root </> "Contents/Resources/docSet.dsidx" 
 
@@ -223,7 +223,7 @@ cons_writeFiles docsets_root = forever $ do
 
   lift . indentM 2 $ msg "populating database.."
 
-  -- Populate the SQlite Db 
+  -- Populate the SQlite Db
   liftIO $ execute_ c' "BEGIN;"
   artifacts <- lift $ toArtifacts (pkg conf) (interfaceFile conf) 
   lift $ mapM_ (fromArtifact (pkg conf) c') artifacts

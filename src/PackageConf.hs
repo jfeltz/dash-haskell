@@ -4,7 +4,7 @@ import FilePath
 import Data.Maybe (catMaybes) 
 
 data PackageConf = PackageConf
-  { pkg           :: Ghc.PackageKey
+  { pkg           :: Ghc.UnitId
   , interfaceFile :: FilePath -- interface, i.e. .haddock file
   , htmlDir       :: FilePath -- root html source directory
   , exposed       :: Bool     -- module exposure flag

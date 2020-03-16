@@ -73,7 +73,7 @@ executable dash-haskell
                   PackageId
 
   build-depends:  Cabal                  >= 1.18.0
-                  , base                 >= 4.7 && <= 4.9
+                  , base                 >= 4.7 && <= 5
                   , containers           >= 0.5.5.1
                   , direct-sqlite        >= 2.3.13
                   , directory            >= 1.2.1.0
@@ -85,7 +85,8 @@ executable dash-haskell
                   , sqlite-simple        >= 0.4.5.0
                   , tagsoup              >= 0.12.7
                   , text                 >= 0.7.1
-                  , transformers         >= 0.2 && < 0.5
+                  , transformers         >= 0.2 && < 0.6
+                  , transformers-either
                   , parsec               >= 3.1.5
                   , haddock-api          >= 2.15.0
   ghc-options:         -Wall -rtsopts
