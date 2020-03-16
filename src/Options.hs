@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Options where
-import           Data.Monoid
 import qualified Distribution.Package as C
 import           Distribution.Text
 import qualified Distribution.Version as V
@@ -79,7 +78,7 @@ parser =
       return $ if (L.null str') then Nothing else (Just str')
 
     versionless :: C.PackageIdentifier -> Bool 
-    versionless p = C.packageVersion p == V.Version [] []
+    versionless p = C.packageVersion p == V.nullVersion
 
     dep :: ReadM C.Dependency 
     dep = do

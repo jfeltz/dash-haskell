@@ -7,17 +7,18 @@ import           Control.Monad.M
 
 import qualified Data.List as L
 import           Control.Monad
-import qualified Distribution.PackageDescription.Parse as C
+import qualified Distribution.PackageDescription.Parsec as C
 import qualified Distribution.Package as C
 import qualified Distribution.Version as C
 import qualified Distribution.PackageDescription as C
+import           Distribution.Verbosity
 import           Data.String.Util
 import           Control.Monad.IO.Class
 import           Data.Function (on)
 import           Data.Maybe
 
 toPkgName :: C.Dependency -> String
-toPkgName (C.Dependency (C.PackageName name) _) = name
+toPkgName (C.Dependency name _) = C.unPackageName name
 
 vintersection :: C.Dependency -> C.Dependency -> Bool
 vintersection (C.Dependency _ lv) (C.Dependency _ rv) = 
@@ -60,17 +61,8 @@ fromExclusions exclusions deps = do
 -- 2 unversioned packageId's satisfy cabal constraints 
 readPackages :: FilePath -> S.Set String -> M [C.Dependency]
 readPackages cabal_path exclusions = do 
-  parse_result <- liftIO $ C.parsePackageDescription <$> readFile cabal_path
-  case parse_result of
-    (C.ParseFailed fail_msg) ->
-      err . show $ fail_msg
-    (C.ParseOk warnings desc) -> do
-      unless (L.null warnings) . warning $ 
-        preposition 
-          "warnings during parse" "of" "cabal file" "warnings"
-          (map show warnings)
-      msg $ "parsing cabal file: " ++ cabal_path
-      fromExclusions exclusions . toDeps $ desc
+  parse_result <- liftIO $ C.readGenericPackageDescription normal cabal_path
+  fromExclusions exclusions . toDeps $ parse_result
    where
     toDeps :: C.GenericPackageDescription -> [C.Dependency] 
     toDeps gpd =

@@ -67,8 +67,8 @@ cabalDb db =
 ghcVersionRange :: CV.VersionRange
 ghcVersionRange =
  CV.intersectVersionRanges
-   (CV.orLaterVersion (CV.Version [7,10]   []))
-   (CV.earlierVersion (CV.Version [7,10,2] []))
+   (CV.orLaterVersion (CV.mkVersion [7,10]  ))
+   (CV.earlierVersion (CV.mkVersion [8,6,5]))
 
 toIndex :: [CC.PackageDB] -> M CI.InstalledPackageIndex
 toIndex stack = do
@@ -87,8 +87,19 @@ toIndex stack = do
     minimal_programs <- CP.configureAllKnownPrograms CVB.normal $
       CP.restoreProgramDb [CP.ghcPkgProgram, CP.ghcProgram] CP.emptyProgramDb
 
-    CG.getInstalledPackages CVB.silent stack minimal_programs
+    CG.getInstalledPackages CVB.silent nullCompiler stack minimal_programs
   where
+    -- TODO: figure out how to get the real compiler information
+    nullCompiler :: CC.Compiler
+    nullCompiler =
+      CC.Compiler
+        { CC.compilerId = CC.CompilerId CC.GHC (CV.mkVersion [8,6,5]),
+          CC.compilerAbiTag = CC.NoAbiTag,
+          CC.compilerCompat = mempty,
+          CC.compilerLanguages = mempty,
+          CC.compilerExtensions = mempty,
+          CC.compilerProperties = mempty
+        }
     clause :: String
     clause =
       "results may not match current supported haddock: "
@@ -109,7 +120,7 @@ fromIndex dep index =
       htmlDir'       <- listToMaybe $ CI.haddockHTMLs info
       return $
         PackageConf
-          (Ghc.stringToPackageKey . show . CT.disp $ CI.sourcePackageId info)
+          (Ghc.stringToUnitId . show . CT.disp $ CI.sourcePackageId info)
           interfaceFile' htmlDir'
           (CI.exposed info)
 

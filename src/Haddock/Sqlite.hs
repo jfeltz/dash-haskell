@@ -15,14 +15,16 @@ data IndexRow = IndexRow {
   , modAttr :: T.Text 
 } deriving (Show)
 
+instance Semigroup IndexRow where
+  (<>) l r =
+    IndexRow
+      ((<>) (nameAttr l) (nameAttr r))
+      ((<>) (typeAttr l) (typeAttr r))
+      ((<>) (pathAttr l) (pathAttr r))
+      ((<>) (modAttr l) (modAttr r))
+
 instance Monoid IndexRow where
   mempty = IndexRow mempty mempty mempty mempty
-  mappend l r =  
-    IndexRow 
-      (mappend (nameAttr l) (nameAttr r))
-      (mappend (typeAttr l) (typeAttr r))
-      (mappend (pathAttr l) (pathAttr r))
-      (mappend (modAttr l) (modAttr r))
 
 -- TODO lensify
 instance ToRow IndexRow where
@@ -61,7 +63,7 @@ escapeSpecial =
     specialChars :: String = "!&|+$%(,)*<>-/=#^\\?"
  
 -- | Update the sqlite database with the given haddock artifact.
-fromArtifact :: Ghc.PackageKey -> Connection -> Artifact -> M ()
+fromArtifact :: Ghc.UnitId -> Connection -> Artifact -> M ()
 fromArtifact p conn art = do
   attributes <- toAttributes
   case attributes of 
@@ -85,7 +87,7 @@ fromArtifact p conn art = do
          return Nothing 
        Package                 ->  
          return . Just $ 
-           (Ghc.packageKeyString p, "Package", "index.html", [])
+           (Ghc.unitIdString p, "Package", "index.html", [])
        Module ghcmod           -> 
          return . Just $
             (modStr ghcmod, "Module" , modUrl ghcmod ++ ".html" , modStr ghcmod)
